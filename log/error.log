@@ -1,0 +1,5 @@
+15:49:12.509 [error] pool 'riaklocal1' failed to start member: {:error, {:tcp, :nxdomain}}
+15:49:12.509 [error] pool 'riaklocal1' failed to start member: {:error, {:tcp, :nxdomain}}
+15:49:12.509 [error] pool 'riaklocal1' failed to start member: {:error, {:tcp, :nxdomain}}
+15:49:12.509 [error] pool 'riaklocal1' failed to start member: {:error, {:tcp, :nxdomain}}
+15:49:12.509 [error] pool 'riaklocal1' failed to start member: {:error, {:tcp, :nxdomain}}
