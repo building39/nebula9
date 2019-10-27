@@ -59,34 +59,35 @@ defmodule RiakMetadata.Server do
 
   @spec delete(String.t(), map()) :: map()
   defp delete(id, state) do
-    {rc, _obj} = get(id, state)
+    Logger.debug("Deleting #{inspect(id)}")
+    {rc, obj} = get(id, state)
 
     case rc do
       :ok ->
-        response = RiakMetadata.Cache.get(id)
-
-        if response.status == :ok do
-          {:ok, obj} = :erlang.binary_to_term(response.value)
-          RiakMetadata.Cache.delete(id)
-          hash = get_domain_hash(obj.domainURI)
-          Logger.debug("setting parentURI")
-          query = "sp:" <> hash <> obj.parentURI <> obj.objectName
-          RiakMetadata.Cache.delete(query)
-        end
-
+        Logger.debug("Found the bastard")
+        RiakMetadata.Cache.delete(id)
+        hash = get_domain_hash(obj.domainURI)
+        query = "sp:" <> hash <> obj.parentURI <> obj.objectName
+        x = RiakMetadata.Cache.delete(query)
+        x2 = RiakMetadata.Cache.delete(id)
+        Logger.debug("Cache delete 1 #{inspect(x)}")
+        Logger.debug("Cache delete 2 #{inspect(x2)}")
         # key (id) needs to be reversed for Riak datastore.
         key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
         @riak_client.delete(state.bucket, key)
+        {:ok, id}
 
-      _other ->
+      other ->
+        Logger.debug("Get for delete failed: #{inspect(other)}")
         {:not_found, id}
     end
   end
 
   @spec get(String.t(), map(), boolean()) :: {atom(), map()}
   defp get(id, state, flip \\ true) do
-    # Logger.debug("metadata get key #{inspect id}")
+    Logger.debug("metadata get key #{inspect(id)}")
     response = RiakMetadata.Cache.get(id)
+    Logger.debug("Cache get returned #{inspect(response)}")
 
     case response do
       nil ->
@@ -98,15 +99,17 @@ defmodule RiakMetadata.Server do
             id
           end
 
-        # Logger.debug("Finding key #{inspect key}")
+        Logger.debug("Finding key #{inspect(key)}")
         obj = @riak_client.find(state.bucket, key)
+        Logger.debug("riak find returned #{inspect(obj)}")
 
         case obj do
           nil ->
-            # Logger.debug("Get not found")
+            Logger.debug("Get not found")
             {:not_found, id}
 
-          _ ->
+          other ->
+            Logger.debug("get found this bastard: #{inspect(other)}")
             {:ok, data} = Jason.decode(obj.data, keys: :atoms)
             RiakMetadata.Cache.set("sp:" <> data.sp, data.cdmi)
             RiakMetadata.Cache.set(data.cdmi.objectID, data.cdmi)
@@ -141,6 +144,7 @@ defmodule RiakMetadata.Server do
   @spec put(String.t(), String.t(), map()) :: {:ok | :dupkey, any(), any()}
   defp put(key, data, state) when is_binary(data) do
     obj = @riak_client.find(state.bucket, key)
+    Logger.debug("put find returned #{inspect(obj)}")
 
     case obj do
       nil ->
@@ -233,6 +237,7 @@ defmodule RiakMetadata.Server do
   defp update(key, data, state) do
     Logger.debug("updating with string data: #{inspect(data)}")
     obj = @riak_client.find(state.bucket, key)
+    Logger.debug("Update find returned #{inspect(obj)}")
 
     case obj do
       nil ->

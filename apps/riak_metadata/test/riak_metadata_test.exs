@@ -1,6 +1,7 @@
 defmodule RiakMetadataTest do
   use ExUnit.Case, async: true
   import Mox
+  require Logger
 
   doctest RiakMetadata
 
@@ -136,27 +137,65 @@ defmodule RiakMetadataTest do
       sp: sp,
       state: state
     }) do
-      counter = :counters.new(1, [])
+      find_counter = :counters.new(1, [])
+      del_counter = :counters.new(1, [])
+      put_counter = :counters.new(1, [])
 
       RiakMetadata.Riak.MockClient
       |> expect(:find, fn _bucket, _key ->
-        :counters.add(counter, 1, 1)
+        :counters.add(find_counter, 1, 1)
+        nil
+      end)
+      |> expect(:put, fn riak_object ->
+        :counters.add(put_counter, 1, 1)
         riak_object
       end)
+      |> expect(:delete, fn _bucket, _key ->
+        :counters.add(del_counter, 1, 1)
+        riak_object
+      end)
+      |> expect(:find, fn _bucket, _key ->
+        :counters.add(find_counter, 1, 1)
+        nil
+      end)
+
+      # put an object so we can then delete it.
+      # this object will exist in the cache after the put, but not in riak,
+      # as we have mocked out all riak calls.
+      Logger.debug("PUT")
+
+      assert RiakMetadata.Server.handle_call(
+               {:put, expected_object.objectID, expected_object},
+               self(),
+               state
+             ) ==
+               {:reply, {:ok, expected_object}, state}
+
+      cache = RiakMetadata.Cache.all()
+      Logger.debug("Cache contents: #{inspect(cache)}")
 
       # test that we get back the object that the end user should see
-      assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
-               {:reply, {:ok, expected_object}, state}
+      Logger.debug("DELETE 1")
+
+      assert RiakMetadata.Server.handle_call({:delete, expected_object.objectID}, self(), state) ==
+               {:reply, {:ok, expected_object.objectID}, state}
+
+      cache = RiakMetadata.Cache.all()
+      Logger.debug("Cache contents after delete: #{inspect(cache)}")
 
       # test that the object got cached
-      assert RiakMetadata.Cache.get("sp:" <> sp) == expected_object
-      assert RiakMetadata.Cache.get(expected_object.objectID) == expected_object
+      assert RiakMetadata.Cache.get("sp:" <> sp) == nil
+      assert RiakMetadata.Cache.get(expected_object.objectID) == nil
 
       # this test should get the data from the cache, and not invoke Riak.find
-      assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
-               {:reply, {:ok, expected_object}, state}
+      Logger.debug("DELETE 2")
 
-      assert 1 == :counters.get(counter, 1)
+      assert RiakMetadata.Server.handle_call({:delete, expected_object.objectID}, self(), state) ==
+               {:reply, {:not_found, expected_object.objectID}, state}
+
+      assert 2 == :counters.get(find_counter, 1)
+      assert 1 == :counters.get(del_counter, 1)
+      assert 1 == :counters.get(put_counter, 1)
     end
 
     test("can get object", %{
