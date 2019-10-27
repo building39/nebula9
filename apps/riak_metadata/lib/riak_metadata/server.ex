@@ -104,7 +104,7 @@ defmodule RiakMetadata.Server do
         case obj do
           nil ->
             # Logger.debug("Get not found")
-            {:not_found, key}
+            {:not_found, id}
 
           _ ->
             {:ok, data} = Jason.decode(obj.data, keys: :atoms)

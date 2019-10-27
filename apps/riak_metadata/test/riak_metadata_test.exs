@@ -130,7 +130,7 @@ defmodule RiakMetadataTest do
       assert RiakMetadata.Server.handle_call(:available, self(), %{}) == {:reply, :pong, %{}}
     end
 
-    test("can get object", %{
+    test("can delete object", %{
       expected_object: expected_object,
       riak_object: riak_object,
       sp: sp,
@@ -157,6 +157,48 @@ defmodule RiakMetadataTest do
                {:reply, {:ok, expected_object}, state}
 
       assert 1 == :counters.get(counter, 1)
+    end
+
+    test("can get object", %{
+      expected_object: expected_object,
+      riak_object: riak_object,
+      sp: sp,
+      state: state
+    }) do
+      counter = :counters.new(1, [])
+
+      RiakMetadata.Riak.MockClient
+      |> expect(:find, fn _bucket, _key ->
+        :counters.add(counter, 1, 1)
+        IO.puts("First find")
+        riak_object
+      end)
+      |> expect(:find, fn _bucket, _key ->
+        :counters.add(counter, 1, 1)
+        IO.puts("Second find")
+        nil
+      end)
+
+      # test that we get back the object that the end user should see
+      assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
+               {:reply, {:ok, expected_object}, state}
+
+      # test that the object got cached
+      assert RiakMetadata.Cache.get("sp:" <> sp) == expected_object
+      assert RiakMetadata.Cache.get(expected_object.objectID) == expected_object
+
+      # this test should get the data from the cache, and not invoke Riak.find
+      assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
+               {:reply, {:ok, expected_object}, state}
+
+      # this covers the not found case
+      assert RiakMetadata.Cache.get("123456") == nil
+      RiakMetadata.Cache.flush()
+
+      assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
+               {:reply, {:not_found, expected_object.objectID}, state}
+
+      assert 2 == :counters.get(counter, 1)
     end
 
     test("can put object", %{
