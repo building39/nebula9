@@ -38,41 +38,7 @@ defmodule RiakMetadataTest do
     setup :verify_on_exit!
 
     setup do
-      # expected_object =
-      #   {:ok,
-      #    %{
-      #      capabilitiesURI: "/cdmi_capabilities/dataobject/permanent/",
-      #      completionStatus: "complete",
-      #      domainURI: "/cdmi_domains/system_domain/",
-      #      metadata: %{
-      #        cdmi_: "84",
-      #        cdmi_acl: [
-      #          %{aceflags: "0x03", acemask: "0x1f07ff", acetype: "0x00", identifier: "OWNER@"},
-      #          %{
-      #            aceflags: "0x03",
-      #            acemask: "0x1F",
-      #            acetype: "0x00",
-      #            identifier: "AUTHENTICATED@"
-      #          },
-      #          %{aceflags: "0x83", acemask: "0x1f07ff", acetype: "0x00", identifier: "OWNER@"},
-      #          %{aceflags: "0x83", acemask: "0x1F", acetype: "0x00", identifier: "AUTHENTICATED@"}
-      #        ],
-      #        cdmi_atime: "2019-10-26T15:02:37.000000Z",
-      #        cdmi_ctime: "2019-10-26T15:02:37.000000Z",
-      #        cdmi_hash:
-      #          "fc7a9ed10a97b0a041b4623275a1eeb8d600f6c56fd765963580bde40b1115c6f58ac7f2ce0688e4dfc053e268f107a25aec8182af3552cf8a9855bb285a99ee",
-      #        cdmi_mtime: "2019-10-26T15:02:37.000000Z",
-      #        cdmi_owner: "administrator"
-      #      },
-      #      objectID: "0000b0b900281a487e3d1279bdf74681a64412dcb6f893a4",
-      #      objectName: "domain_maps",
-      #      objectType: "application/cdmi-object",
-      #      parentID: "0000b0b90028f0cf95b331546d4941dfadfc4b8dd36c62ba",
-      #      parentURI: "/system_configuration/",
-      #      value:
-      #        "{\"cdmi.localhost.net\": \"system_domain/\", \"default.localhost.net\": \"default_domain/\"}",
-      #      valuetransferencoding: "utf-8"
-      #    }}
+      RiakMetadata.Cache.flush()
 
       riak_object = %Riak.Object{
         bucket: {"cdmi", "cdmi"},
@@ -136,8 +102,15 @@ defmodule RiakMetadataTest do
       }
 
       {:ok, cdmi_object} = Jason.decode(riak_object.data, keys: :atoms)
-      # {:ok, sp} = Jason.decode(riak_object)
+
+      bucket_type = <<"cdmi">>
+      bucket_name = <<"cdmi">>
+      bucket = {bucket_type, bucket_name}
+
       state = %RiakMetadata.State{
+        bucket_type: bucket_type,
+        bucket_name: bucket_name,
+        bucket: bucket,
         host: "localhost",
         port: 8888
       }
@@ -166,7 +139,7 @@ defmodule RiakMetadataTest do
       counter = :counters.new(1, [])
 
       RiakMetadata.Riak.MockClient
-      |> expect(:find, fn bucket, key ->
+      |> expect(:find, fn _bucket, _key ->
         :counters.add(counter, 1, 1)
         riak_object
       end)
@@ -177,12 +150,51 @@ defmodule RiakMetadataTest do
 
       # test that the object got cached
       assert RiakMetadata.Cache.get("sp:" <> sp) == expected_object
+      assert RiakMetadata.Cache.get(expected_object.objectID) == expected_object
 
       # this test should get the data from the cache, and not invoke Riak.find
       assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
-               {:reply, expected_object, state}
+               {:reply, {:ok, expected_object}, state}
 
       assert 1 == :counters.get(counter, 1)
+    end
+
+    test("can put object", %{
+      expected_object: expected_object,
+      sp: sp,
+      state: state
+    }) do
+      find_counter = :counters.new(1, [])
+      put_counter = :counters.new(1, [])
+
+      RiakMetadata.Riak.MockClient
+      |> expect(:find, fn _bucket, _key ->
+        :counters.add(find_counter, 1, 1)
+        nil
+      end)
+      |> expect(:put, fn riak_object ->
+        :counters.add(put_counter, 1, 1)
+        riak_object
+      end)
+
+      # test that we get back the object that the end user should see
+      assert RiakMetadata.Server.handle_call(
+               {:put, expected_object.objectID, expected_object},
+               self(),
+               state
+             ) ==
+               {:reply, {:ok, expected_object}, state}
+
+      # test that the object got cached
+      assert RiakMetadata.Cache.get("sp:" <> sp) == expected_object
+      assert RiakMetadata.Cache.get(expected_object.objectID) == expected_object
+
+      # this test should get the data from the cache, and not invoke Riak.find
+      assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
+               {:reply, {:ok, expected_object}, state}
+
+      assert 1 == :counters.get(find_counter, 1)
+      assert 1 == :counters.get(put_counter, 1)
     end
   end
 end

@@ -11,15 +11,11 @@ defmodule RiakMetadata.Server do
   end
 
   def init([state]) do
-    IO.inspect(@riak_client, label: "RIAK_CLIENT 1")
-    IO.inspect(Application.get_env(:riak_metadata, RiakMetadata.Cache), label: "RIAK_CLIENT 2")
     {:ok, state}
   end
 
   def handle_call(:available, _from, state) do
-    Logger.debug("handle_call: :available")
-    resp = @riak_client.ping()
-    {:reply, resp, state}
+    {:reply, available(), state}
   end
 
   def handle_call({:delete, key}, _from, state) do
@@ -29,7 +25,8 @@ defmodule RiakMetadata.Server do
 
   def handle_call({:get, key}, _from, state) do
     Logger.debug("handle_call: :get")
-    {:reply, get(key, state), state}
+    obj = get(key, state)
+    {:reply, obj, state}
   end
 
   def handle_call({:put, key, data}, _from, state) do
@@ -57,7 +54,7 @@ defmodule RiakMetadata.Server do
 
   @spec available() :: atom()
   defp available() do
-    Riak.ping()
+    @riak_client.ping()
   end
 
   @spec delete(String.t(), map()) :: map()
@@ -118,31 +115,27 @@ defmodule RiakMetadata.Server do
         end
 
       obj ->
-        obj
+        Logger.debug("Got a cache hit")
+        {:ok, obj}
     end
   end
 
   @spec put(String.t(), map(), map()) :: tuple()
   defp put(id, data, state) when is_map(data) do
-    Logger.debug("metadata put key #{inspect(id)}")
-    Logger.debug("metadata put data #{inspect(data)}")
     # key (id) needs to be reversed for Riak datastore.
     key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
-    new_data = wrap_object(data)
-    Logger.debug("new_data: #{inspect(new_data)}")
-    {:ok, stringdata} = Jason.encode(new_data)
-    {rc, _} = put(key, stringdata, state)
+    wrapped_data = wrap_object(data)
+    {:ok, stringdata} = Jason.encode(wrapped_data)
+    {rc, new_data} = put(key, stringdata, state)
 
     if rc == :ok do
-      Logger.debug("Data is #{inspect(new_data)}")
-      Logger.debug("ID is #{inspect(id)}")
-      RiakMetadata.Cache.set(id, data)
-      RiakMetadata.Cache.set(new_data.sp, data)
+      RiakMetadata.Cache.set(id, new_data.cdmi)
+      RiakMetadata.Cache.set("sp:" <> new_data.sp, new_data.cdmi)
     else
       Logger.debug("PUT failed: #{inspect(rc)}")
     end
 
-    {rc, new_data}
+    {rc, new_data.cdmi}
   end
 
   @spec put(String.t(), String.t(), map()) :: {:ok | :dupkey, any(), any()}
@@ -151,11 +144,12 @@ defmodule RiakMetadata.Server do
 
     case obj do
       nil ->
-        @riak_client.put(Riak.Object.create(bucket: state.bucket, key: key, data: data))
-        {:ok, data}
+        # this call will return a riak object.
+        ro = @riak_client.put(Riak.Object.create(bucket: state.bucket, key: key, data: data))
+        Jason.decode(ro.data, keys: :atoms)
 
-      _error ->
-        # Logger.debug("PUT find failed: #{inspect error}")
+      error ->
+        Logger.debug("PUT find failed: #{inspect(error)}")
         {:dupkey, key, data}
     end
   end
