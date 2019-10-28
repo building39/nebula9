@@ -124,6 +124,11 @@ defmodule RiakMetadataTest do
       }
     end
 
+    test("bogus request") do
+      assert RiakMetadata.Server.handle_call(:bogus, self(), %{}) ==
+               {:reply, {:badrequest, :bogus}, %{}}
+    end
+
     test("can ping") do
       RiakMetadata.Riak.MockClient
       |> expect(:ping, fn -> :pong end)
@@ -242,6 +247,7 @@ defmodule RiakMetadataTest do
 
     test("can put object", %{
       expected_object: expected_object,
+      riak_object: riak_object,
       sp: sp,
       state: state
     }) do
@@ -255,6 +261,10 @@ defmodule RiakMetadataTest do
       end)
       |> expect(:put, fn riak_object ->
         :counters.add(put_counter, 1, 1)
+        riak_object
+      end)
+      |> expect(:find, fn _bucket, _key ->
+        :counters.add(find_counter, 1, 1)
         riak_object
       end)
 
@@ -274,8 +284,77 @@ defmodule RiakMetadataTest do
       assert RiakMetadata.Server.handle_call({:get, expected_object.objectID}, self(), state) ==
                {:reply, {:ok, expected_object}, state}
 
-      assert 1 == :counters.get(find_counter, 1)
+      # try to put an object that's already there
+      assert RiakMetadata.Server.handle_call(
+               {:put, expected_object.objectID, expected_object},
+               self(),
+               state
+             ) ==
+               {:reply, {:dupkey, expected_object.objectID}, state}
+
+      assert 2 == :counters.get(find_counter, 1)
       assert 1 == :counters.get(put_counter, 1)
+    end
+
+    test("can update object", %{
+      expected_object: expected_object,
+      riak_object: riak_object,
+      sp: sp,
+      state: state
+    }) do
+      find_counter = :counters.new(1, [])
+      put_counter = :counters.new(1, [])
+      new_object = Map.put(expected_object, :objectName, "new_name")
+
+      {:ok, old_riak_data} = Jason.decode(riak_object.data, keys: :atoms)
+      hash = RiakMetadata.Server.get_domain_hash(new_object.domainURI)
+      query = "sp:" <> hash <> new_object.parentURI <> new_object.objectName
+
+      {:ok, new_riak_data} =
+        old_riak_data
+        |> Map.put(:sp, query)
+        |> Map.put(:data, new_object)
+        |> Jason.encode()
+
+      new_riak_object = Map.put(riak_object, :data, new_riak_data)
+
+      RiakMetadata.Riak.MockClient
+      |> expect(:put, fn riak_object ->
+        :counters.add(put_counter, 1, 1)
+        new_riak_object
+      end)
+      |> expect(:find, fn _bucket, _key ->
+        :counters.add(find_counter, 1, 1)
+        nil
+      end)
+
+      # put an object so we can then update it.
+      # this object will exist in the cache after the put, but not in riak,
+      # as we have mocked out all riak calls.
+      RiakMetadata.Cache.set(expected_object.objectID, expected_object)
+
+      # test that we get back the object that the end user updated
+      assert RiakMetadata.Server.handle_call(
+               {:update, expected_object.objectID, new_object},
+               self(),
+               state
+             ) ==
+               {:reply, {:ok, new_object}, state}
+
+      # test that the object got cached
+      assert RiakMetadata.Cache.get(query) == new_object
+      assert RiakMetadata.Cache.get(expected_object.objectID) == new_object
+
+      # try to update a non-existing object
+      assert RiakMetadata.Server.handle_call(
+               {:update, "1234", new_object},
+               self(),
+               state
+             ) ==
+               {:reply, {:not_found, "1234"}, state}
+
+      assert 1 == :counters.get(put_counter, 1)
+      assert 1 == :counters.get(find_counter, 1)
     end
   end
 end

@@ -75,10 +75,12 @@ defmodule RiakMetadata.Server do
         # key (id) needs to be reversed for Riak datastore.
         key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
         @riak_client.delete(state.bucket, key)
+        Logger.debug("returning {:ok, #{inspect(id)}}")
         {:ok, id}
 
       other ->
         Logger.debug("Get for delete failed: #{inspect(other)}")
+        Logger.debug("returning {:not_found, #{inspect(id)}}")
         {:not_found, id}
     end
   end
@@ -87,7 +89,6 @@ defmodule RiakMetadata.Server do
   defp get(id, state, flip \\ true) do
     Logger.debug("metadata get key #{inspect(id)}")
     response = RiakMetadata.Cache.get(id)
-    Logger.debug("Cache get returned #{inspect(response)}")
 
     case response do
       nil ->
@@ -123,28 +124,26 @@ defmodule RiakMetadata.Server do
     end
   end
 
-  @spec put(String.t(), map(), map()) :: tuple()
+  @spec put(String.t(), String.t() | map(), map()) :: tuple()
   defp put(id, data, state) when is_map(data) do
     # key (id) needs to be reversed for Riak datastore.
     key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
     wrapped_data = wrap_object(data)
     {:ok, stringdata} = Jason.encode(wrapped_data)
-    {rc, new_data} = put(key, stringdata, state)
 
-    if rc == :ok do
-      RiakMetadata.Cache.set(id, new_data.cdmi)
-      RiakMetadata.Cache.set("sp:" <> new_data.sp, new_data.cdmi)
-    else
-      Logger.debug("PUT failed: #{inspect(rc)}")
+    case put(key, stringdata, state) do
+      {:ok, new_data} ->
+        RiakMetadata.Cache.set(id, new_data.cdmi)
+        RiakMetadata.Cache.set("sp:" <> new_data.sp, new_data.cdmi)
+        {:ok, new_data.cdmi}
+
+      {rc, _} ->
+        {rc, id}
     end
-
-    {rc, new_data.cdmi}
   end
 
-  @spec put(String.t(), String.t(), map()) :: {:ok | :dupkey, any(), any()}
   defp put(key, data, state) when is_binary(data) do
     obj = @riak_client.find(state.bucket, key)
-    Logger.debug("put find returned #{inspect(obj)}")
 
     case obj do
       nil ->
@@ -153,8 +152,7 @@ defmodule RiakMetadata.Server do
         Jason.decode(ro.data, keys: :atoms)
 
       error ->
-        Logger.debug("PUT find failed: #{inspect(error)}")
-        {:dupkey, key, data}
+        {:dupkey, key}
     end
   end
 
@@ -201,53 +199,39 @@ defmodule RiakMetadata.Server do
   end
 
   @spec update(String.t(), map(), map()) :: any()
-  defp update(id, data, state) when is_map(data) do
-    Logger.debug("Update key: #{inspect(id)}")
-    Logger.debug("Update data: #{inspect(data, pretty: true)}")
-    # key (id) needs to be reversed for Riak datastore.
-    key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
-    new_data = wrap_object(data)
-    {:ok, stringdata} = Jason.encode(new_data)
-    Logger.debug("JSON data: #{inspect(stringdata)}")
-    {rc, _} = update(key, stringdata, state)
+  defp update(id, new_data, state) do
+    # Get the old stuff from Riak
+    case get(id, state) do
+      {:ok, old_data} ->
+        do_update(old_data, new_data, state)
 
-    if rc == :ok do
-      Logger.debug("update ok")
-      hash = get_domain_hash(data.domainURI)
-
-      query =
-        if Map.has_key?(data, :parentURI) do
-          "sp:" <> hash <> data.parentURI <> data.objectName
-        else
-          # Must be the root container
-          "sp:" <> hash <> data.objectName
-        end
-
-      RiakMetadata.Cache.set(query, data)
-      RiakMetadata.Cache.set(id, data)
-    else
-      Logger.debug("Update failed: #{inspect(rc)}")
+      other ->
+        other
     end
-
-    # Logger.debug("update returning #{inspect({rc, new_data.cdmi})}")
-    {rc, new_data.cdmi}
   end
 
-  @spec update(String.t(), String.t(), map()) :: any()
-  defp update(key, data, state) do
-    Logger.debug("updating with string data: #{inspect(data)}")
-    obj = @riak_client.find(state.bucket, key)
-    Logger.debug("Update find returned #{inspect(obj)}")
+  @spec do_update(map(), map(), map()) :: any()
+  defp do_update(old_data, new_data, state) do
+    id = old_data.objectID
+    # Delete the old stuff from the cache
+    old_wrapped = wrap_object(old_data)
 
-    case obj do
-      nil ->
-        # Logger.debug("Update not found")
-        {:not_found, nil}
+    RiakMetadata.Cache.delete(old_wrapped.sp)
+    RiakMetadata.Cache.delete(id)
 
-      _ ->
-        obj = %{obj | data: data}
-        {:ok, @riak_client.put(obj).data}
-    end
+    # key (id) needs to be reversed for Riak datastore.
+    key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
+    new_data = Map.merge(old_data, new_data)
+    wrapped_data = wrap_object(new_data)
+    {:ok, stringdata} = Jason.encode(wrapped_data)
+
+    updated_object =
+      @riak_client.put(Riak.Object.create(bucket: state.bucket, key: key, data: stringdata))
+
+    RiakMetadata.Cache.set("sp:" <> wrapped_data.sp, wrapped_data.cdmi)
+    RiakMetadata.Cache.set(wrapped_data.cdmi.objectID, wrapped_data.cdmi)
+
+    {:ok, wrapped_data.cdmi}
   end
 
   @doc """
@@ -255,8 +239,6 @@ defmodule RiakMetadata.Server do
   """
   @spec get_domain_hash(binary()) :: binary()
   def get_domain_hash(domain) when is_binary(domain) do
-    Logger.debug("get_domain_hash for #{inspect(domain)}")
-
     :crypto.hmac(:sha, <<"domain">>, domain)
     |> Base.encode16()
     |> String.downcase()
@@ -271,7 +253,6 @@ defmodule RiakMetadata.Server do
         Map.get(data, :domainURI, "/cdmi_domains/system_domain/")
       end
 
-    Logger.debug("Domain: #{inspect(domain, pretty: true)}")
     hash = get_domain_hash(domain)
 
     sp =
