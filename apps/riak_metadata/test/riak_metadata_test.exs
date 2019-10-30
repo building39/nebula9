@@ -102,6 +102,36 @@ defmodule RiakMetadataTest do
             182, 150, 129, 105, 70, 65, 6, 83, 34, 99, 30, 43, 3, 255, 29, 141, 235, 124, 89, 0>>
       }
 
+      search_results = {
+        :search_results,
+        [
+          {"cdmi_idx",
+           [
+             {"score", "3.15948409999999979547e+00"},
+             {"_yz_rb", "cdmi"},
+             {"_yz_rt", "cdmi"},
+             {"_yz_rk", "9d6d779c9db34df70000b0b90028a2c90a21964acf4d4143"},
+             {"_yz_id", "1*cdmi*cdmi*9d6d779c9db34df70000b0b90028a2c90a21964acf4d4143*23"}
+           ]}
+        ],
+        3.1594841480255127,
+        1
+      }
+
+      search_results_not_found = {
+        :search_results,
+        [],
+        0.0,
+        0
+      }
+
+      search_results_dup_key = {
+        :search_results,
+        [],
+        0.0,
+        2
+      }
+
       {:ok, cdmi_object} = Jason.decode(riak_object.data, keys: :atoms)
 
       bucket_type = <<"cdmi">>
@@ -119,6 +149,9 @@ defmodule RiakMetadataTest do
       %{
         expected_object: cdmi_object.cdmi,
         riak_object: riak_object,
+        search_results: search_results,
+        search_results_dup_key: search_results_dup_key,
+        search_results_not_found: search_results_not_found,
         sp: cdmi_object.sp,
         state: state
       }
@@ -167,8 +200,6 @@ defmodule RiakMetadataTest do
       # put an object so we can then delete it.
       # this object will exist in the cache after the put, but not in riak,
       # as we have mocked out all riak calls.
-      Logger.debug("PUT")
-
       assert RiakMetadata.Server.handle_call(
                {:put, expected_object.objectID, expected_object},
                self(),
@@ -176,25 +207,15 @@ defmodule RiakMetadataTest do
              ) ==
                {:reply, {:ok, expected_object}, state}
 
-      cache = RiakMetadata.Cache.all()
-      Logger.debug("Cache contents: #{inspect(cache)}")
-
       # test that we get back the object that the end user should see
-      Logger.debug("DELETE 1")
-
       assert RiakMetadata.Server.handle_call({:delete, expected_object.objectID}, self(), state) ==
                {:reply, {:ok, expected_object.objectID}, state}
-
-      cache = RiakMetadata.Cache.all()
-      Logger.debug("Cache contents after delete: #{inspect(cache)}")
 
       # test that the object got cached
       assert RiakMetadata.Cache.get("sp:" <> sp) == nil
       assert RiakMetadata.Cache.get(expected_object.objectID) == nil
 
       # this test should get the data from the cache, and not invoke Riak.find
-      Logger.debug("DELETE 2")
-
       assert RiakMetadata.Server.handle_call({:delete, expected_object.objectID}, self(), state) ==
                {:reply, {:not_found, expected_object.objectID}, state}
 
@@ -214,12 +235,10 @@ defmodule RiakMetadataTest do
       RiakMetadata.Riak.MockClient
       |> expect(:find, fn _bucket, _key ->
         :counters.add(counter, 1, 1)
-        IO.puts("First find")
         riak_object
       end)
       |> expect(:find, fn _bucket, _key ->
         :counters.add(counter, 1, 1)
-        IO.puts("Second find")
         nil
       end)
 
@@ -296,10 +315,74 @@ defmodule RiakMetadataTest do
       assert 1 == :counters.get(put_counter, 1)
     end
 
+    test("can search for an object", %{
+      expected_object: expected_object,
+      riak_object: riak_object,
+      search_results: search_results,
+      search_results_dup_key: search_results_dup_key,
+      search_results_not_found: search_results_not_found,
+      state: state
+    }) do
+      find_counter = :counters.new(1, [])
+      query_counter = :counters.new(1, [])
+
+      RiakMetadata.Riak.MockClient
+      |> expect(:query, fn _index, _query ->
+        :counters.add(query_counter, 1, 1)
+        {:ok, search_results}
+      end)
+      |> expect(:find, fn _bucket, _key ->
+        :counters.add(find_counter, 1, 1)
+        riak_object
+      end)
+      |> expect(:query, fn _index, _query ->
+        :counters.add(query_counter, 1, 1)
+        {:ok, search_results_not_found}
+      end)
+      |> expect(:query, fn _index, _query ->
+        :counters.add(query_counter, 1, 1)
+        {:ok, search_results_dup_key}
+      end)
+
+      # test that we get back the object that the end user searched for
+      assert RiakMetadata.Server.handle_call(
+               {:search,
+                "c8c17baf9a68a8dbc75b818b24269ebca06b0f31/system_configuration/domain_maps"},
+               self(),
+               state
+             ) ==
+               {:reply, {:ok, expected_object}, state}
+
+      assert RiakMetadata.Cache.get(expected_object.objectID) == expected_object
+
+      # test that we get a not found condition for a query on a non-existant object
+      assert RiakMetadata.Server.handle_call(
+               {:search,
+                "c8c17baf9a68a8dbc75b818b24269ebca06b0000/system_configuration/domain_maps"},
+               self(),
+               state
+             ) ==
+               {:reply,
+                {:not_found,
+                 "c8c17baf9a68a8dbc75b818b24269ebca06b0000/system_configuration/domain_maps"},
+                state}
+
+      # test dor duplicate record found
+      assert RiakMetadata.Server.handle_call(
+               {:search,
+                "c8c17baf9a68a8dbc75b818b24269ebca06b0000/system_configuration/domain_maps"},
+               self(),
+               state
+             ) ==
+               {:reply, {:multiples, [], 2}, state}
+
+      assert 3 == :counters.get(query_counter, 1)
+      assert 1 == :counters.get(find_counter, 1)
+    end
+
     test("can update object", %{
       expected_object: expected_object,
       riak_object: riak_object,
-      sp: sp,
       state: state
     }) do
       find_counter = :counters.new(1, [])
@@ -319,7 +402,7 @@ defmodule RiakMetadataTest do
       new_riak_object = Map.put(riak_object, :data, new_riak_data)
 
       RiakMetadata.Riak.MockClient
-      |> expect(:put, fn riak_object ->
+      |> expect(:put, fn _riak_object ->
         :counters.add(put_counter, 1, 1)
         new_riak_object
       end)

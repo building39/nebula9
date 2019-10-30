@@ -3,4 +3,5 @@ defmodule RiakMetadata.Riak.Adapter do
   @callback delete(bucket :: tuple(), key :: String.t()) :: term()
   @callback find(bucket :: tuple(), key :: String.t()) :: term()
   @callback put(obj :: term()) :: term()
+  @callback query(index :: String.t(), query :: String.t()) :: term()
 end

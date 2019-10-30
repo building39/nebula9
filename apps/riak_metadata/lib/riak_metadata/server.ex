@@ -37,7 +37,6 @@ defmodule RiakMetadata.Server do
   def handle_call({:search, query}, _from, state) do
     Logger.debug("handle_call: :search")
     s = search(query, state)
-    Logger.debug("Search returned: #{inspect(s, pretty: true)}")
     {:reply, s, state}
     # {:reply, search(query, state), state}
   end
@@ -64,30 +63,23 @@ defmodule RiakMetadata.Server do
 
     case rc do
       :ok ->
-        Logger.debug("Found the bastard")
         RiakMetadata.Cache.delete(id)
         hash = get_domain_hash(obj.domainURI)
         query = "sp:" <> hash <> obj.parentURI <> obj.objectName
-        x = RiakMetadata.Cache.delete(query)
-        x2 = RiakMetadata.Cache.delete(id)
-        Logger.debug("Cache delete 1 #{inspect(x)}")
-        Logger.debug("Cache delete 2 #{inspect(x2)}")
+        RiakMetadata.Cache.delete(query)
+        RiakMetadata.Cache.delete(id)
         # key (id) needs to be reversed for Riak datastore.
         key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
         @riak_client.delete(state.bucket, key)
-        Logger.debug("returning {:ok, #{inspect(id)}}")
         {:ok, id}
 
-      other ->
-        Logger.debug("Get for delete failed: #{inspect(other)}")
-        Logger.debug("returning {:not_found, #{inspect(id)}}")
+      _other ->
         {:not_found, id}
     end
   end
 
   @spec get(String.t(), map(), boolean()) :: {atom(), map()}
   defp get(id, state, flip \\ true) do
-    Logger.debug("metadata get key #{inspect(id)}")
     response = RiakMetadata.Cache.get(id)
 
     case response do
@@ -100,17 +92,13 @@ defmodule RiakMetadata.Server do
             id
           end
 
-        Logger.debug("Finding key #{inspect(key)}")
         obj = @riak_client.find(state.bucket, key)
-        Logger.debug("riak find returned #{inspect(obj)}")
 
         case obj do
           nil ->
-            Logger.debug("Get not found")
             {:not_found, id}
 
           other ->
-            Logger.debug("get found this bastard: #{inspect(other)}")
             {:ok, data} = Jason.decode(obj.data, keys: :atoms)
             RiakMetadata.Cache.set("sp:" <> data.sp, data.cdmi)
             RiakMetadata.Cache.set(data.cdmi.objectID, data.cdmi)
@@ -119,7 +107,6 @@ defmodule RiakMetadata.Server do
         end
 
       obj ->
-        Logger.debug("Got a cache hit")
         {:ok, obj}
     end
   end
@@ -151,43 +138,36 @@ defmodule RiakMetadata.Server do
         ro = @riak_client.put(Riak.Object.create(bucket: state.bucket, key: key, data: data))
         Jason.decode(ro.data, keys: :atoms)
 
-      error ->
+      _error ->
         {:dupkey, key}
     end
   end
 
   @spec search(String.t(), map()) :: {atom(), map()}
   defp search(query, state) do
-    Logger.debug("Searching for #{inspect(query)}")
     response = RiakMetadata.Cache.get(query)
 
-    case response.status do
-      :ok ->
-        obj = :erlang.binary_to_term(response.value)
-        {:ok, obj}
-
-      _status ->
-        Logger.debug("Cache miss")
-
+    case response do
+      nil ->
         {:ok, {:search_results, results, _score, count}} =
           @riak_client.query(state.cdmi_index, query)
 
         case count do
           1 ->
             {:ok, data} = get_data(results, state)
-            Logger.debug(fn -> "got data: #{inspect(data)}" end)
             RiakMetadata.Cache.set(query, data)
             RiakMetadata.Cache.set(data.objectID, data)
             {:ok, data}
 
           0 ->
-            Logger.debug("Search not found: #{inspect(query)}")
             {:not_found, query}
 
           _ ->
-            Logger.debug("Multiple results found")
             {:multiples, results, count}
         end
+
+      obj ->
+        {:ok, obj}
     end
   end
 
@@ -225,7 +205,7 @@ defmodule RiakMetadata.Server do
     wrapped_data = wrap_object(new_data)
     {:ok, stringdata} = Jason.encode(wrapped_data)
 
-    updated_object =
+    _updated_object =
       @riak_client.put(Riak.Object.create(bucket: state.bucket, key: key, data: stringdata))
 
     RiakMetadata.Cache.set("sp:" <> wrapped_data.sp, wrapped_data.cdmi)
