@@ -4,6 +4,7 @@ defmodule CdmiWeb.Util.Utils do
   """
 
   require Logger
+  require CdmiWeb.Util.Macros, as: Macros
 
   @doc """
   Encrypt.
@@ -19,7 +20,7 @@ defmodule CdmiWeb.Util.Utils do
   Calculate a hash for a domain.
   """
   @spec get_domain_hash(String.t() | binary) :: String.t()
-  def get_domain_hash(domain) when is_binary(domain) do
+  def get_domain_hash(domain) do
     Logger.debug("generating hash for #{inspect(domain)}")
 
     hash =
@@ -31,10 +32,6 @@ defmodule CdmiWeb.Util.Utils do
     hash
   end
 
-  def get_domain_hash(domain) do
-    get_domain_hash(<<domain>>)
-  end
-
   @doc """
   Return a timestamp in the form of "2015-12-25T16:39:1451083144.000000Z"
   """
@@ -42,8 +39,12 @@ defmodule CdmiWeb.Util.Utils do
   def make_timestamp() do
     Logger.debug(fn -> "making a timestamp" end)
 
-    {{year, month, day}, {hour, minute, second}} =
-      :calendar.now_to_universal_time(:os.timestamp())
+    {{year, month, day}, {hour, minute, second}} = case Macros.mix_build_env() do
+      "test" ->
+        {{2001, 3, 17}, {13, 45, 21}}
+      _ ->
+        :calendar.now_to_universal_time(:os.timestamp())
+    end
 
     timestamp =
       List.flatten(

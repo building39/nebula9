@@ -3,6 +3,11 @@ defmodule CdmiWeb.Util.Macros do
   Various and assorted macros used throughout the application.
   """
 
+  # Capture the mix environment at build time
+  defmacro mix_build_env() do
+    Atom.to_string( Mix.env )
+  end
+
   defmacro fix_container_path(conn) do
     quote do
       if String.ends_with?(unquote(conn).request_path, "/") do
