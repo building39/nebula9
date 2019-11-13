@@ -20,3 +20,5 @@ erl_crash.dump
 /config/prod.secret.exs
 
 /.elixir_ls
+**/log
+**/logs
