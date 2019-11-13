@@ -98,7 +98,7 @@ defmodule RiakMetadata.Server do
           nil ->
             {:not_found, id}
 
-          other ->
+          _other ->
             {:ok, data} = Jason.decode(obj.data, keys: :atoms)
             RiakMetadata.Cache.set("sp:" <> data.sp, data.cdmi)
             RiakMetadata.Cache.set(data.cdmi.objectID, data.cdmi)

@@ -9,14 +9,14 @@
 # move said applications out of the umbrella.
 import Config
 
-# Sample configuration:
-#
-#     config :logger, :console,
-#       level: :info,
-#       format: "$date $time [$level] $metadata$message\n",
-#       metadata: [:user_id]
-#
+# Configures the endpoint
+config :cdmi, CdmiWeb.Endpoint,
+  url: [host: "localhost"],
+  secret_key_base: "CsNP28bwK3bCyXmqn616NAAku+g9EhbeT0mpfuTMxh+vxx5Ek5XyTLa4m24XkoKP",
+  render_errors: [view: CdmiWeb.ErrorView, accepts: ~w(json)],
+  pubsub: [name: Cdmi.PubSub, adapter: Phoenix.PubSub.PG2]
 
+# Configures Elixir's Logger
 config :logger,
   format: "[$level] $message\n",
   metadata: [:file, :line],
@@ -50,6 +50,9 @@ config :pooler, pools:
     ]
   ]
 
-  # Import environment specific config. This must remain at the bottom
-  # of this file so it overrides the configuration defined above.
-  import_config "#{Mix.env}.exs"
+# Use Jason for JSON parsing in Phoenix
+config :phoenix, :json_library, Jason
+
+# Import environment specific config. This must remain at the bottom
+# of this file so it overrides the configuration defined above.
+import_config "#{Mix.env}.exs"
