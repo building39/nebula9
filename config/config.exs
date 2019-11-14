@@ -26,17 +26,18 @@ config :logger,
              :console]
 
 config :logger, :debug_log,
+  metadata: [:file, :line],
   colors: [enabled: :true],
   path: "log/debug.log",
   level: :debug
 
 config :logger, :error_log,
-metadata: [:file, :line],
+  metadata: [:file, :line],
   path: "log/error.log",
   level: :error
 
 config :logger, :info_log,
-metadata: [:file, :line],
+  metadata: [:file, :line],
   path: "log/info.log",
   level: :error
 
