@@ -13,7 +13,7 @@ config :cdmi, CdmiWeb.Endpoint,
   watchers: []
 
 config :cdmi,
-  cdmi_version: ["1.1", "1.1.1"]
+  cdmi_versions: ["1.1", "1.1.1"]
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

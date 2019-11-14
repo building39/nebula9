@@ -14,5 +14,4 @@ defmodule CdmiWeb.Util.UtilsTest do
     assert "2001-03-17T13:45:21.000000Z" == CdmiWeb.Util.Utils.make_timestamp()
   end
 
-
 end
