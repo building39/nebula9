@@ -450,7 +450,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         conn
           |> put_resp_header(
               "X-CDMI-Specification-Version",
-              Enum.join(Application.get_env(:nebula, :cdmi_version), ",")
+              Enum.join(Application.get_env(:cdmi, :cdmi_versions), ",")
             )
           |> put_resp_header("content-type", resource)
       end

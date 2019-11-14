@@ -37,16 +37,24 @@ defmodule CdmiWeb.V1.CdmiObjectController do
 
   @spec handle_show_object_type(String.t(), Plug.Conn.t(), map) :: Plug.Conn.t()
   defp handle_show_object_type(@container_object, conn, data) do
-    Logger.debug("handle_show_object_type")
+    Logger.debug("handle_show_object_type conn: #{inspect conn, pretty: true}")
+    Logger.debug("data: #{inspect data, pretty: true}")
     set_mandatory_response_headers(conn, "container")
     data = process_query_string(conn, data)
 
-    if String.ends_with?(conn.request_path, "/") do
+    # if String.ends_with?(conn.request_path, "/") do
+    if String.ends_with?(data.objectName, "/") do
       conn
       |> put_status(:ok)
-      |> render("cdmi_object.cdmio", cdmi_object: data)
+      |> render("cdmi_object.cdmic", cdmi_object: data)
     else
-      location = @api_prefix <> "container" <> data.parentURI <> data.objectName
+      location = case data.objectName do
+        "/" ->
+          # root container has no parentURI
+          @api_prefix <> "container" <> data.objectName
+        _ ->
+          @api_prefix <> "container" <> data.parentURI <> data.objectName
+      end
       request_fail(conn, :moved_permanently, "Moved Permanently", [{"Location", location}])
     end
   end

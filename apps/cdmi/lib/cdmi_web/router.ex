@@ -3,7 +3,7 @@ defmodule CdmiWeb.Router do
   require Logger
 
   pipeline :cdmi do
-    plug(CdmiWeb.Plugs.V1.Debug)
+    # plug(CdmiWeb.Plugs.V1.Debug)
     plug(:accepts, ["json", "cdmia", "cdmic", "cdmid", "cdmio", "cdmiq"])
     plug(CdmiWeb.Plugs.V1.CDMIVersion)
     # plug(CdmiWeb.Plugs.V1.ResolveDomain)

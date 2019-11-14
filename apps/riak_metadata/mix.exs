@@ -21,7 +21,15 @@ defmodule RiakMetadata.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
+      applications: [:logger, :riak, :logger_file_backend],
+      env: [
+        riak_bucket_type: <<"cdmi">>,
+        riak_bucket_name: <<"cdmi">>,
+        riak_cdmi_index: <<"cdmi_idx">>,
+        riak_serverip: "192.168.2.11",
+        riak_serverport: 8087,
+        name_prefix: "cdmi"
+      ],
       mod: {RiakMetadata.Application, []}
     ]
   end
