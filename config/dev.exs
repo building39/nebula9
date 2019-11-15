@@ -14,6 +14,8 @@ config :cdmi, CdmiWeb.Endpoint,
 
 config :cdmi,
   cdmi_versions: ["1.1", "1.1.1"]
+  metadata_module: CdmiWeb.Util.MetadataBackend,
+  metadata_backend: RiakMetadata
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

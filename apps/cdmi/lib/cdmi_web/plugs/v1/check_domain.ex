@@ -1,12 +1,15 @@
 defmodule CdmiWeb.Plugs.V1.CheckDomain do
+  @backend Application.get_env(:cdmi, :metadata_module)
   import Plug.Conn
   import Phoenix.Controller
   import CdmiWeb.Util.Constants
   import CdmiWeb.Util.Utils, only: [get_domain_hash: 1]
   use CdmiWeb.Util.ControllerCommon
   require Logger
+  alias CdmiWeb.Util.MetadataBackend
 
   def init(opts) do
+    Logger.debug("init: opts: #{inspect opts}")
     opts
   end
 
@@ -23,10 +26,10 @@ defmodule CdmiWeb.Plugs.V1.CheckDomain do
       domain = conn.assigns.cdmi_domain
       domain_hash = get_domain_hash("/cdmi_domains/" <> domain)
       query = "sp:" <> domain_hash <> "/cdmi_domains/#{domain}"
-      {rc, data} = GenServer.call(Metadata, {:search, query})
+      {rc, data} = @backend.search(conn.assigns.metadata_backend, query)
 
       if rc == :ok and data.objectType == domain_object() do
-        if Map.get(data.metadata, :cdmi_domain_enabled, false) do
+        if Map.get(data.metadata, :cdmi_domain_enabled, true) do
           conn
         else
           request_fail(conn, :forbidden, "Forbidden")

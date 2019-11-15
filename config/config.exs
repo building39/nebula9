@@ -16,6 +16,7 @@ config :cdmi, CdmiWeb.Endpoint,
   render_errors: [view: CdmiWeb.ErrorView, accepts: ~w(json)],
   pubsub: [name: Cdmi.PubSub, adapter: Phoenix.PubSub.PG2],
   cdmi_versions: ["1.1", "1.1.1"],
+  metadata_module: CdmiWeb.Util.MetadataBackend,
   metadata_backend: RiakMetadata
 
 # Configures Elixir's Logger
