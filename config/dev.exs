@@ -13,7 +13,7 @@ config :cdmi, CdmiWeb.Endpoint,
   watchers: []
 
 config :cdmi,
-  cdmi_versions: ["1.1", "1.1.1"]
+  cdmi_versions: ["1.1", "1.1.1"],
   metadata_module: CdmiWeb.Util.MetadataBackend,
   metadata_backend: RiakMetadata
 
