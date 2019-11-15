@@ -14,36 +14,60 @@ defmodule RiakMetadata.Server do
     {:ok, state}
   end
 
+  def available(opts) do
+    GenServer.call(Metadata, opts)
+  end
+
+  def delete(opts) do
+    GenServer.call(Metadata, opts)
+  end
+
+  def get(opts) do
+    GenServer.call(Metadata, opts)
+  end
+
+  def put(opts) do
+    GenServer.call(Metadata, opts)
+  end
+
+  def search(opts) do
+    GenServer.call(Metadata, opts)
+  end
+
+  def update(opts) do
+    GenServer.call(Metadata, opts)
+  end
+
   def handle_call(:available, _from, state) do
-    {:reply, available(), state}
+    {:reply, backend_available(), state}
   end
 
   def handle_call({:delete, key}, _from, state) do
     Logger.debug("handle_call: :delete")
-    {:reply, delete(key, state), state}
+    {:reply, obj_delete(key, state), state}
   end
 
   def handle_call({:get, key}, _from, state) do
     Logger.debug("handle_call: :get Key: #{inspect key}")
-    obj = get(key, state)
+    obj = obj_get(key, state)
     {:reply, obj, state}
   end
 
   def handle_call({:put, key, data}, _from, state) do
     Logger.debug("handle_call: :put")
-    {:reply, put(key, data, state), state}
+    {:reply, obj_put(key, data, state), state}
   end
 
   def handle_call({:search, query}, _from, state) do
     Logger.debug("handle_call: :search")
-    s = search(query, state)
+    s = obj_search(query, state)
     {:reply, s, state}
     # {:reply, search(query, state), state}
   end
 
   def handle_call({:update, key, data}, _from, state) do
     Logger.debug("handle_call: :update")
-    {:reply, update(key, data, state), state}
+    {:reply, obj_update(key, data, state), state}
   end
 
   def handle_call(request, _from, state) do
@@ -51,15 +75,15 @@ defmodule RiakMetadata.Server do
     {:reply, {:badrequest, request}, state}
   end
 
-  @spec available() :: atom()
-  defp available() do
+  @spec backend_available() :: atom()
+  defp backend_available() do
     @riak_client.ping()
   end
 
-  @spec delete(String.t(), map()) :: map()
-  defp delete(id, state) do
+  @spec obj_delete(String.t(), map()) :: map()
+  defp obj_delete(id, state) do
     Logger.debug("Deleting #{inspect(id)}")
-    {rc, obj} = get(id, state)
+    {rc, obj} = obj_get(id, state)
 
     case rc do
       :ok ->
@@ -78,8 +102,8 @@ defmodule RiakMetadata.Server do
     end
   end
 
-  @spec get(String.t(), map(), boolean()) :: {atom(), map()}
-  defp get(id, state, flip \\ true) do
+  @spec obj_get(String.t(), map(), boolean()) :: {atom(), map()}
+  defp obj_get(id, state, flip \\ true) do
     response = RiakMetadata.Cache.get(id)
 
     case response do
@@ -111,14 +135,14 @@ defmodule RiakMetadata.Server do
     end
   end
 
-  @spec put(String.t(), String.t() | map(), map()) :: tuple()
-  defp put(id, data, state) when is_map(data) do
+  @spec obj_put(String.t(), String.t() | map(), map()) :: tuple()
+  defp obj_put(id, data, state) when is_map(data) do
     # key (id) needs to be reversed for Riak datastore.
     key = String.slice(id, -16..-1) <> String.slice(id, 0..31)
     wrapped_data = wrap_object(data)
     {:ok, stringdata} = Jason.encode(wrapped_data)
 
-    case put(key, stringdata, state) do
+    case obj_put(key, stringdata, state) do
       {:ok, new_data} ->
         RiakMetadata.Cache.set(id, new_data.cdmi)
         RiakMetadata.Cache.set("sp:" <> new_data.sp, new_data.cdmi)
@@ -129,7 +153,7 @@ defmodule RiakMetadata.Server do
     end
   end
 
-  defp put(key, data, state) when is_binary(data) do
+  defp obj_put(key, data, state) when is_binary(data) do
     obj = @riak_client.find(state.bucket, key)
 
     case obj do
@@ -143,8 +167,8 @@ defmodule RiakMetadata.Server do
     end
   end
 
-  @spec search(String.t(), map()) :: {atom(), map()}
-  defp search(query, state) do
+  @spec obj_search(String.t(), map()) :: {atom(), map()}
+  defp obj_search(query, state) do
     response = RiakMetadata.Cache.get(query)
 
     case response do
@@ -175,13 +199,13 @@ defmodule RiakMetadata.Server do
   defp get_data(results, state) do
     {_, rlist} = List.keyfind(results, state.cdmi_index, 0)
     {_, key} = List.keyfind(rlist, "_yz_rk", 0)
-    get(key, state, false)
+    obj_get(key, state, false)
   end
 
-  @spec update(String.t(), map(), map()) :: any()
-  defp update(id, new_data, state) do
+  @spec obj_update(String.t(), map(), map()) :: any()
+  defp obj_update(id, new_data, state) do
     # Get the old stuff from Riak
-    case get(id, state) do
+    case obj_get(id, state) do
       {:ok, old_data} ->
         do_update(old_data, new_data, state)
 
