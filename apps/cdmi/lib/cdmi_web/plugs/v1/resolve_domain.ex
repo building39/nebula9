@@ -1,8 +1,19 @@
 defmodule CdmiWeb.V1.ResolveDomain do
   @moduledoc """
   Resolve the user's domain.
-  """
 
+  This only works with basic authentication at this time.
+  The user may authenticate like:
+    "user:password"
+  or
+    "user:password;realm=domain"
+
+  In the first case, the domain will resolve to "default_domain/".
+  In the second case, the domain specified will be used.
+  In either case, the domain itself will be validated later in the
+  "CheckDomain" plug.
+  """
+  @backend Application.get_env(:cdmi, :metadata_module)
   import Plug.Conn
   import Phoenix.Controller
   use CdmiWeb.Util.ControllerCommon
@@ -27,9 +38,7 @@ defmodule CdmiWeb.V1.ResolveDomain do
     new_conn =
       case auth do
         [] ->
-          Logger.debug("What are we doing here?")
-          conn
-          |> assign(:cdmi_domain, "system_domain/")
+          request_fail(conn, :forbidden, "Forbidden")
 
         x ->
           Logger.debug("AUTH: #{inspect x}")
@@ -70,7 +79,7 @@ defmodule CdmiWeb.V1.ResolveDomain do
     # TODO: handle the realm map
     domain_hash = get_domain_hash("/cdmi_domains/system_domain/")
     query = "sp:" <> domain_hash <> "/system_configuration/domain_maps"
-    {:ok, domain_maps} = GenServer.call(Metadata, {:search, query})
+    {:ok, domain_maps} = @backend.search(conn.assigns.metadata_backend, query)
     {:ok, domain_maps} = Jason.decode(domain_maps.value)
     {_, domain} = Enum.find(domain_maps, {"", "default_domain/"}, fn {k, _v} -> k == conn.host end)
     Logger.debug("domain map: #{inspect domain_maps, pretty: true}")
