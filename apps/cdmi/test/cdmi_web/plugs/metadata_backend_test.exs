@@ -3,6 +3,7 @@ defmodule CdmiWeb.Plugs.MetadataBackendTest do
 
   describe "test the metadata backend plug" do
     test "default is riak" do
+      Application.delete_env(:cdmi, :metadata_backend)
       conn = build_conn()
       |> CdmiWeb.Plugs.V1.MetadataBackend.call(%{})
       assert conn.assigns.metadata_backend == RiakMetadata
