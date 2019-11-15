@@ -22,7 +22,7 @@ defmodule CdmiWeb.Plugs.V1.CDMIVersion do
     Logger.debug("CDMIVersion plug")
     x_cdmi_header = get_req_header(conn, "x-cdmi-specification-version")
     server_versions = Enum.join(Application.get_env(:cdmi, :cdmi_versions), ",")
-    conn = put_resp_header(conn, "X-CDMI-Specification-Version", server_versions)
+    conn = put_resp_header(conn, "x-cdmi-specification-version", server_versions)
 
     if length(x_cdmi_header) == 0 do
       request_fail(
