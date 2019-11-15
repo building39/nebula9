@@ -21,7 +21,7 @@ defmodule RiakMetadata.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      applications: [:logger, :riak, :logger_file_backend],
+      extra_applications: [:logger, :riak, :logger_file_backend],
       env: [
         riak_bucket_type: <<"cdmi">>,
         riak_bucket_name: <<"cdmi">>,
