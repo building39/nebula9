@@ -44,9 +44,13 @@ defmodule CdmiWeb.V1.CdmiObjectController do
 
     # if String.ends_with?(conn.request_path, "/") do
     if String.ends_with?(data.objectName, "/") do
-      conn
-      |> put_status(:ok)
-      |> render("cdmi_object.cdmic", cdmi_object: data)
+      c =
+        conn
+        |> put_status(:ok)
+        |> render("show.json", cdmi_object: data)
+
+      Logger.debug("Back from view, conn: #{inspect(c)}")
+      c
     else
       location =
         case data.objectName do
@@ -69,7 +73,7 @@ defmodule CdmiWeb.V1.CdmiObjectController do
     if String.ends_with?(conn.request_path, "/") do
       conn
       |> put_status(:ok)
-      |> render("cdmi_object.json", cdmi_object: data)
+      |> render("show.json", cdmi_object: data)
     else
       location = @api_prefix <> "container" <> data.parentURI <> data.objectName
       request_fail(conn, :moved_permanently, "Moved Permanently", [{"Location", location}])
