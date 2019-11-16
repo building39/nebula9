@@ -5,6 +5,7 @@ defmodule CdmiWeb.Router do
   pipeline :cdmi do
     # plug(CdmiWeb.Plugs.V1.Debug)
     plug(:accepts, ["json", "cdmia", "cdmic", "cdmid", "cdmio", "cdmiq"])
+    plug(CdmiWeb.Plugs.V1.MetadataBackend)
     plug(CdmiWeb.Plugs.V1.CDMIVersion)
     plug(CdmiWeb.Plugs.V1.ResolveDomain)
     # plug(CdmiWeb.Plugs.V1.ApplyCapabilities)

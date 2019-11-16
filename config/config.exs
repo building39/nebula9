@@ -15,7 +15,9 @@ config :cdmi, CdmiWeb.Endpoint,
   secret_key_base: "CsNP28bwK3bCyXmqn616NAAku+g9EhbeT0mpfuTMxh+vxx5Ek5XyTLa4m24XkoKP",
   render_errors: [view: CdmiWeb.ErrorView, accepts: ~w(json)],
   pubsub: [name: Cdmi.PubSub, adapter: Phoenix.PubSub.PG2],
-  cdmi_versions: ["1.1", "1.1.1"],
+  cdmi_versions: ["1.1", "1.1.1"]
+
+config :cdmi,
   metadata_module: CdmiWeb.Util.MetadataBackend,
   metadata_backend: RiakMetadata
 
@@ -23,13 +25,11 @@ config :cdmi, CdmiWeb.Endpoint,
 config :logger,
   format: "[$level] $message\n",
   metadata: [:file, :line],
-  backends: [{LoggerFileBackend, :error_log},
-             {LoggerFileBackend, :debug_log},
-             :console]
+  backends: [{LoggerFileBackend, :error_log}, {LoggerFileBackend, :debug_log}, :console]
 
 config :logger, :debug_log,
   metadata: [:file, :line],
-  colors: [enabled: :true],
+  colors: [enabled: true],
   path: "log/debug.log",
   level: :debug
 
@@ -43,14 +43,14 @@ config :logger, :info_log,
   path: "log/info.log",
   level: :error
 
-config :pooler, pools:
-  [
+config :pooler,
+  pools: [
     [
       name: :riaklocal1,
       group: :riak,
       max_count: 10,
       init_count: 5,
-      start_mfa: { Riak.Connection, :start_link, ['nebriak1.fuzzcat.loc', 8087] }
+      start_mfa: {Riak.Connection, :start_link, ['nebriak1.fuzzcat.loc', 8087]}
     ]
   ]
 
@@ -59,13 +59,13 @@ config :phoenix, :json_library, Jason
 
 # Custom mime types
 config :mime, :types, %{
-      "application/cdmi-capability" => ["cdmia"],
-      "application/cdmi-container" => ["cdmic"],
-      "application/cdmi-domain" => ["cdmid"],
-      "application/cdmi-object" => ["cdmio"],
-      "application/cdmi-queue" => ["cdmiq"]
-    }
+  "application/cdmi-capability" => ["cdmia"],
+  "application/cdmi-container" => ["cdmic"],
+  "application/cdmi-domain" => ["cdmid"],
+  "application/cdmi-object" => ["cdmio"],
+  "application/cdmi-queue" => ["cdmiq"]
+}
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"
