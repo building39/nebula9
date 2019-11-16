@@ -7,7 +7,7 @@ defmodule RiakMetadata.Server do
   import RiakMetadata.State
 
   def start_link(state) do
-    GenServer.start_link(__MODULE__, [state], name: Metadata)
+    GenServer.start_link(__MODULE__, [state], name: RiakMetadata)
   end
 
   def init([state]) do
@@ -24,7 +24,7 @@ defmodule RiakMetadata.Server do
   end
 
   def handle_call({:get, key}, _from, state) do
-    Logger.debug("handle_call: :get Key: #{inspect key}")
+    Logger.debug("handle_call: :get Key: #{inspect(key)}")
     obj = get(key, state)
     {:reply, obj, state}
   end
