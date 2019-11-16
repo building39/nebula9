@@ -28,10 +28,7 @@ defmodule CdmiWeb.Util.MetadataBackend do
   @spec search(atom(), String.t()) ::
           {:ok, map()} | {:not_found, String.t()} | {:multiples, term(), float()}
   def search(metadata_backend, query) do
-    Logger.debug("Calling backend #{inspect(metadata_backend)}")
-    r = GenServer.call(metadata_backend, {:search, query})
-    Logger.debug("Search returned: #{inspect(r, pretty: true)}")
-    r
+    GenServer.call(metadata_backend, {:search, query})
   end
 
   @spec update(atom(), String.t(), map()) :: {:ok, map()} | {:not_found, String.t()}
