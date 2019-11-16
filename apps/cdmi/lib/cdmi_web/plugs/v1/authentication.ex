@@ -31,7 +31,7 @@ defmodule CdmiWeb.Plugs.V1.Authentication do
         case method do
           "Basic" ->
             Logger.debug("doing basic authentication")
-            {user, privileges} = basic_authentication(conn.assigns.cdmi_domain, authstring)
+            {user, privileges} = basic_authentication(conn, authstring)
             Logger.debug("Authentication result: #{inspect(user)}")
 
             if user == :unauthorized do
@@ -53,8 +53,10 @@ defmodule CdmiWeb.Plugs.V1.Authentication do
     request_fail(conn, :unauthorized, "Unauthorized", [{"WWW-Authenticate", method}])
   end
 
-  @spec basic_authentication(String.t(), String.t()) :: {String.t(), String.t()} | {:unauthorized, nil}
-  defp basic_authentication(domain, authstring) do
+  @spec basic_authentication(Plug.Conn.t(), String.t()) ::
+          {String.t(), String.t()} | {:unauthorized, nil}
+  defp basic_authentication(conn, authstring) do
+    domain = conn.assigns.cdmi_domain
     [user, rest] = String.split(authstring, ":")
     [password | _] = String.split(rest, ";")
     Logger.debug("password is #{inspect(password)}")
@@ -62,7 +64,7 @@ defmodule CdmiWeb.Plugs.V1.Authentication do
     Logger.debug("domain is #{inspect(domain)}")
     domain_hash = get_domain_hash("/cdmi_domains/" <> domain)
     query = "sp:" <> domain_hash <> "/cdmi_domains/" <> domain <> "cdmi_domain_members/" <> user
-    user_obj = GenServer.call(Metadata, {:search, query})
+    user_obj = MetadataBackend.search(conn.assigns.metadata_backend, query)
     Logger.debug("response from search: #{inspect(user_obj)}")
 
     case user_obj do

@@ -1,8 +1,8 @@
 defmodule CdmiWeb.Util.MetadataBackend do
-@moduledoc """
-Wrapper for the metadata backend module.
+  @moduledoc """
+  Wrapper for the metadata backend module.
 
-"""
+  """
   require Logger
 
   @spec available(atom()) :: :pong | :connection_pool_exhausted
@@ -20,20 +20,22 @@ Wrapper for the metadata backend module.
     GenServer.call(metadata_backend, {:get, key})
   end
 
-  @spec put(atom(), String.t(), map()) :: {:ok, map()} | {atom(), String.t}
+  @spec put(atom(), String.t(), map()) :: {:ok, map()} | {atom(), String.t()}
   def put(metadata_backend, key, data) do
     GenServer.call(metadata_backend, {:put, key, data})
   end
 
-  @spec search(atom(), String.t()) :: {:ok, map()} | {:not_found, String.t} | {:multiples, term(), float()}
+  @spec search(atom(), String.t()) ::
+          {:ok, map()} | {:not_found, String.t()} | {:multiples, term(), float()}
   def search(metadata_backend, query) do
-    Logger.debug("Calling backend #{inspect metadata_backend}")
-    GenServer.call(metadata_backend, {:search, query})
+    Logger.debug("Calling backend #{inspect(metadata_backend)}")
+    r = GenServer.call(metadata_backend, {:search, query})
+    Logger.debug("Search returned: #{inspect(r, pretty: true)}")
+    r
   end
 
   @spec update(atom(), String.t(), map()) :: {:ok, map()} | {:not_found, String.t()}
   def update(metadata_backend, key, data) do
     GenServer.call(metadata_backend, {:update, key, data})
   end
-
 end

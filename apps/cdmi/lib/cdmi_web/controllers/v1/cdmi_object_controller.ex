@@ -18,8 +18,8 @@ defmodule CdmiWeb.V1.CdmiObjectController do
 
   @spec show(Plug.Conn.t(), map) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
-    Logger.debug("Showing a CDMI object with id #{inspect id}")
-    handle_show(conn, GenServer.call(Metadata, {:get, id}))
+    Logger.debug("Showing a CDMI object with id #{inspect(id)}")
+    handle_show(conn, MetadataBackend.get(conn.assigns.metadata_backend, id))
   end
 
   @spec handle_show(Plug.Conn.t(), {atom, map}) :: Plug.Conn.t()
@@ -37,8 +37,8 @@ defmodule CdmiWeb.V1.CdmiObjectController do
 
   @spec handle_show_object_type(String.t(), Plug.Conn.t(), map) :: Plug.Conn.t()
   defp handle_show_object_type(@container_object, conn, data) do
-    Logger.debug("handle_show_object_type conn: #{inspect conn, pretty: true}")
-    Logger.debug("data: #{inspect data, pretty: true}")
+    Logger.debug("handle_show_object_type conn: #{inspect(conn, pretty: true)}")
+    Logger.debug("data: #{inspect(data, pretty: true)}")
     set_mandatory_response_headers(conn, "container")
     data = process_query_string(conn, data)
 
@@ -48,13 +48,16 @@ defmodule CdmiWeb.V1.CdmiObjectController do
       |> put_status(:ok)
       |> render("cdmi_object.cdmic", cdmi_object: data)
     else
-      location = case data.objectName do
-        "/" ->
-          # root container has no parentURI
-          @api_prefix <> "container" <> data.objectName
-        _ ->
-          @api_prefix <> "container" <> data.parentURI <> data.objectName
-      end
+      location =
+        case data.objectName do
+          "/" ->
+            # root container has no parentURI
+            @api_prefix <> "container" <> data.objectName
+
+          _ ->
+            @api_prefix <> "container" <> data.parentURI <> data.objectName
+        end
+
       request_fail(conn, :moved_permanently, "Moved Permanently", [{"Location", location}])
     end
   end
@@ -84,7 +87,7 @@ defmodule CdmiWeb.V1.CdmiObjectController do
 
   @spec delete(Plug.Conn.t(), map) :: Plug.Conn.t()
   def delete(conn, %{"id" => id}) do
-    response = GenServer.call(Metadata, {:get, id})
+    response = MetadataBackend.get(conn.assigns.metadata_backend, id)
 
     conn2 =
       case response do

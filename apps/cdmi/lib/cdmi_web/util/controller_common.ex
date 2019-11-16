@@ -8,7 +8,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
       import CdmiWeb.Util.Constants
       import CdmiWeb.Util.Utils
       require Logger
-
+      alias CdmiWeb.Util.MetadataBackend
 
       @doc """
       Check ACLs.
@@ -43,7 +43,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         query =
           "sp:" <> get_domain_hash("/cdmi_domains/system_domain/") <> container.capabilitiesURI
 
-        {:ok, capabilities} = GenServer.call(Metadata, {:search, query})
+        {:ok, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, query)
         capabilities = Map.get(capabilities, :capabilities)
 
         can_delete =
@@ -75,7 +75,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
 
         query = "sp:" <> get_domain_hash("/cdmi_domains/system_domain/") <> parent.capabilitiesURI
 
-        {:ok, capabilities} = GenServer.call(Metadata, {:search, query})
+        {:ok, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, query)
 
         capabilities = Map.get(capabilities, :capabilities)
         Logger.debug("got capabilities: #{inspect(capabilities, pretty: true)}")
@@ -133,7 +133,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
           Logger.debug("XYZ calling get_domain_hash for #{inspect(domain_string)}")
           domain_hash = get_domain_hash(domain_string)
           query = "sp:" <> domain_hash <> domain_string
-          {rc, data} = GenServer.call(Metadata, {:search, query})
+          {rc, data} = MetadataBackend.search(conn.assigns.metadata_backend, query)
 
           if rc == :ok and data.objectType == domain_object() do
             if Map.get(data.metadata, :cdmi_domain_enabled, false) do
@@ -163,7 +163,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         hash = get_domain_hash("/cdmi_domains/" <> domain)
         query = "sp:" <> hash <> "/cdmi_domains/" <> domain
         Logger.debug("query: #{inspect(query)}")
-        response = GenServer.call(Metadata, {:search, query})
+        response = MetadataBackend.search(conn.assigns.metadata_backend, query)
         Logger.debug("search results: #{inspect(response)}")
 
         case tuple_size(response) do
@@ -281,6 +281,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         case domain_uri do
           {:ok, domain} ->
             Logger.debug("setting parentURI")
+
             new_container = %{
               objectType: container_object(),
               objectID: object_oid,
@@ -294,10 +295,11 @@ defmodule CdmiWeb.Util.ControllerCommon do
               childrenrange: "",
               metadata: metadata
             }
+
             Logger.debug("parentURI ok")
 
             c = assign(conn, :newobject, new_container)
-            Logger.debug("Assign 1: #{inspect c.assigns, pretty: true}")
+            Logger.debug("Assign 1: #{inspect(c.assigns, pretty: true)}")
             c
 
           {:not_found, _} ->
@@ -318,16 +320,17 @@ defmodule CdmiWeb.Util.ControllerCommon do
 
       def delete_object(conn) do
         oid = conn.assigns.data.objectID
-        Task.start(__MODULE__, :handle_delete, [conn.assigns.data])
+        Task.start(__MODULE__, :handle_delete, [conn])
         conn
       end
 
-      @spec handle_delete(map) :: atom
-      def handle_delete(obj) do
+      @spec handle_delete(Plug.Conn.t()) :: atom
+      def handle_delete(conn) do
+        obj = conn.assigns.data
         oid = obj.objectID
 
         if obj.objectType == data_object() do
-          GenServer.call(Metadata, {:delete, oid})
+          MetadataBackend.delete(conn.assigns.metadata_backend, oid)
         else
           children = Map.get(obj, :children, [])
           Logger.debug("XYZ calling get_domain_hash")
@@ -337,12 +340,12 @@ defmodule CdmiWeb.Util.ControllerCommon do
           Logger.debug("parentURI ok")
 
           if length(children) == 0 do
-            GenServer.call(Metadata, {:delete, oid})
+            MetadataBackend.delete(conn.assigns.metadata_backend, oid)
           else
             for child <- children do
               query = query <> child
 
-              case GenServer.call(Metadata, {:search, query}) do
+              case MetadataBackend.search(conn.assigns.metadata_backend, query) do
                 {:ok, data} ->
                   handle_delete(data)
 
@@ -350,7 +353,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
                   nil
               end
 
-              GenServer.call(Metadata, {:delete, oid})
+              MetadataBackend.delete(conn.assigns.metadata_backend, oid)
             end
           end
         end
@@ -383,7 +386,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         Logger.debug("setting parentURI")
         conn2 = assign(conn, :parentURI, parent_uri)
         Logger.debug("parentURI ok")
-        Logger.debug("Assign 2: #{inspect conn2.assigns, pretty: true}")
+        Logger.debug("Assign 2: #{inspect(conn2.assigns, pretty: true)}")
         Logger.debug("XYZ calling get_domain_hash")
 
         domain_hash =
@@ -397,13 +400,13 @@ defmodule CdmiWeb.Util.ControllerCommon do
 
         Logger.debug("domain_hash #{inspect(domain_hash)}")
         query = "sp:" <> domain_hash <> parent_uri
-        parent_obj = GenServer.call(Metadata, {:search, query})
+        parent_obj = MetadataBackend.search(conn.assigns.metadata_backend, query)
 
         case parent_obj do
           {:ok, data} ->
             Logger.debug(fn -> "get_parent found parent #{inspect(data, pretty: true)}" end)
             c = assign(conn2, :parent, data)
-            Logger.debug("Assign 3: #{inspect c.assigns, pretty: true}")
+            Logger.debug("Assign 3: #{inspect(c.assigns, pretty: true)}")
             c
 
           {_, _} ->
@@ -448,11 +451,11 @@ defmodule CdmiWeb.Util.ControllerCommon do
       @spec set_mandatory_response_headers(Plug.Conn.t(), String.t()) :: Plug.Conn.t()
       def set_mandatory_response_headers(conn, resource) do
         conn
-          |> put_resp_header(
-              "X-CDMI-Specification-Version",
-              Enum.join(Application.get_env(:cdmi, :cdmi_versions), ",")
-            )
-          |> put_resp_header("content-type", resource)
+        |> put_resp_header(
+          "X-CDMI-Specification-Version",
+          Enum.join(Application.get_env(:cdmi, :cdmi_versions), ",")
+        )
+        |> put_resp_header("content-type", resource)
       end
 
       @doc """
@@ -485,9 +488,9 @@ defmodule CdmiWeb.Util.ControllerCommon do
           end
 
         parent = Map.put(parent, :childrenrange, new_range)
-        result = GenServer.call(Metadata, {:update, parent.objectID, parent})
+        result = MetadataBackend.update(conn.assigns.metadata_backend, parent.objectID, parent)
         c = assign(conn, :parent, parent)
-        Logger.debug("Assign 4: #{inspect c.assigns, pretty: true}")
+        Logger.debug("Assign 4: #{inspect(c.assigns, pretty: true)}")
         c
       end
 
@@ -524,11 +527,15 @@ defmodule CdmiWeb.Util.ControllerCommon do
 
         new_parent2 = Map.put(new_parent, :childrenrange, new_range)
 
-        case GenServer.call(Metadata, {:update, new_parent2.objectID, new_parent2}) do
+        case MetadataBackend.update(
+               conn.assigns.metadata_backend,
+               new_parent2.objectID,
+               new_parent2
+             ) do
           {:ok, new_parent2} ->
             Logger.debug("XYZ parent update succeeded: #{inspect(new_parent2, pretty: true)}")
             new_conn = assign(conn, :parent, new_parent2)
-            Logger.debug("Assign 5: #{inspect new_conn.assigns, pretty: true}")
+            Logger.debug("Assign 5: #{inspect(new_conn.assigns, pretty: true)}")
             Logger.debug("XYZ New conn: #{inspect(new_conn)}")
             new_conn
 
@@ -551,7 +558,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         key = new_domain.objectID
         parent = conn.assigns.parent
         Logger.debug("parent is #{inspect(parent)}")
-        {rc, data} = GenServer.call(Metadata, {:put, key, new_domain})
+        {rc, data} = MetadataBackend.put(conn.assigns.metadata_backend, key, new_domain)
 
         if rc == :ok do
           Logger.debug("wrote the new object")

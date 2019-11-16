@@ -42,7 +42,7 @@ defmodule CdmiWeb.Plugs.V1.Prefetch do
     Logger.debug("domain_hash: #{inspect(domain_hash)}")
     query = "sp:" <> domain_hash <> String.replace_prefix(req_path, "/api/v1", "")
     Logger.debug("query: #{inspect(query)}")
-    {rc, data} = GenServer.call(Metadata, {:search, query})
+    {rc, data} = MetadataBackend.search(conn.assigns.metadata_backend, query)
     Logger.debug("rc: #{inspect(rc)} data: #{inspect(data)}")
 
     if rc == :ok do
