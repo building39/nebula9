@@ -21,14 +21,11 @@ defmodule CdmiWeb.Util.Utils do
   """
   @spec get_domain_hash(String.t() | binary) :: String.t()
   def get_domain_hash(domain) do
-    Logger.debug("generating hash for #{inspect(domain)}")
-
     hash =
       :crypto.hmac(:sha, <<"domain">>, domain)
       |> Base.encode16()
       |> String.downcase()
 
-    Logger.debug("hash is #{inspect(hash)}")
     hash
   end
 
@@ -37,14 +34,14 @@ defmodule CdmiWeb.Util.Utils do
   """
   @spec make_timestamp() :: String.t()
   def make_timestamp() do
-    Logger.debug(fn -> "making a timestamp" end)
+    {{year, month, day}, {hour, minute, second}} =
+      case Macros.mix_build_env() do
+        "test" ->
+          {{2001, 3, 17}, {13, 45, 21}}
 
-    {{year, month, day}, {hour, minute, second}} = case Macros.mix_build_env() do
-      "test" ->
-        {{2001, 3, 17}, {13, 45, 21}}
-      _ ->
-        :calendar.now_to_universal_time(:os.timestamp())
-    end
+        _ ->
+          :calendar.now_to_universal_time(:os.timestamp())
+      end
 
     timestamp =
       List.flatten(
@@ -59,7 +56,6 @@ defmodule CdmiWeb.Util.Utils do
       )
       |> List.to_string()
 
-    Logger.debug(fn -> "made timestamp: #{inspect(timestamp)}" end)
     timestamp
   end
 end

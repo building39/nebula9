@@ -71,7 +71,6 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
     end
 
     test "resolve to system domain", %{
-      domain_map: domain_map,
       enabled_domain: enabled_domain,
       system_domain: domain
     } do
@@ -94,7 +93,6 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
     end
 
     test "fail on disabled domain", %{
-      domain_map: domain_map,
       disabled_domain: disabled_domain,
       system_domain: domain
     } do
@@ -118,7 +116,6 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
     end
 
     test "fail on nonexistant domain", %{
-      domain_map: domain_map,
       system_domain: domain
     } do
       CdmiWeb.Util.MockMetadataBackend
@@ -140,14 +137,7 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
       assert 403 == conn.status
     end
 
-    test "fail on no authorization", %{
-      domain_map: domain_map,
-      system_domain: domain
-    } do
-      user = "admin"
-      pswd = "secret"
-      auth_string = Base.encode64(user <> ":" <> pswd <> ";realm=" <> domain)
-
+    test "fail on no authorization" do
       conn =
         build_conn()
         |> assign(:metadata_backend, RiakMetadata)
@@ -158,7 +148,6 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
     end
 
     test "ensure domain name ends with '/'", %{
-      domain_map: domain_map,
       enabled_domain: enabled_domain,
       system_domain: domain
     } do
@@ -180,7 +169,7 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
       assert domain == conn.assigns.cdmi_domain
     end
 
-    test "fail resolution if no auth string", %{domain_map: domain_map, system_domain: domain} do
+    test "fail resolution if no auth string", %{} do
       conn =
         build_conn()
         |> assign(:metadata_backend, RiakMetadata)

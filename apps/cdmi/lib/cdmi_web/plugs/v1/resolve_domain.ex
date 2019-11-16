@@ -29,7 +29,6 @@ defmodule CdmiWeb.Plugs.V1.ResolveDomain do
   def call(conn, _opts) do
     Logger.debug("ResolveDomain plug")
     auth = get_req_header(conn, "authorization")
-    Logger.debug("Auth: #{inspect(auth)}")
 
     resolve(conn, auth)
     |> validate()
@@ -37,7 +36,6 @@ defmodule CdmiWeb.Plugs.V1.ResolveDomain do
 
   @spec get_domain_from_realm_map(Plug.Conn.t()) :: String.t()
   defp get_domain_from_realm_map(conn) do
-    # TODO: handle the realm map
     domain_hash = get_domain_hash("/cdmi_domains/system_domain/")
     query = "sp:" <> domain_hash <> "/system_configuration/domain_maps"
     {:ok, domain_maps} = @backend.search(conn.assigns.metadata_backend, query)
@@ -46,8 +44,6 @@ defmodule CdmiWeb.Plugs.V1.ResolveDomain do
     {_, domain} =
       Enum.find(domain_maps, {"", "default_domain/"}, fn {k, _v} -> k == conn.host end)
 
-    Logger.debug("domain map: #{inspect(domain_maps, pretty: true)}")
-    Logger.debug("Got this domain: #{inspect(domain)}")
     domain
   end
 
@@ -88,9 +84,7 @@ defmodule CdmiWeb.Plugs.V1.ResolveDomain do
             |> List.last()
             |> String.split(",")
 
-          Logger.debug("XYZ options: #{inspect(options)}")
           domain = get_realm(options)
-          Logger.debug("Resolved domain: #{inspect(domain)}")
 
           if domain == nil do
             get_domain_from_realm_map(conn)
@@ -98,8 +92,6 @@ defmodule CdmiWeb.Plugs.V1.ResolveDomain do
             domain
           end
       end
-
-    Logger.debug("Domain resolved to: #{inspect(domain)}")
 
     conn
     |> assign(:cdmi_domain, domain)
