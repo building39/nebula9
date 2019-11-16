@@ -4,8 +4,7 @@ defmodule CdmiWeb.Router do
 
   pipeline :cdmi do
     # plug(CdmiWeb.Plugs.V1.Debug)
-    # plug(:accepts, ["json", "cdmia", "cdmic", "cdmid", "cdmio", "cdmiq"])
-    plug(:accepts, ["json"])
+    plug(:accepts, ["json", "cdmia", "cdmic"])
     plug(CdmiWeb.Plugs.V1.MetadataBackend)
     plug(CdmiWeb.Plugs.V1.CDMIVersion)
     plug(CdmiWeb.Plugs.V1.ResolveDomain)
@@ -20,6 +19,7 @@ defmodule CdmiWeb.Router do
     pipe_through(:cdmi)
 
     scope "/v1", V1, as: :v1 do
+      get("/", CdmiRootContainerController, :show)
       # get("/cdmi_objectid/:id", CdmiObjectController, :show)
       resources("/cdmi_objectid", CdmiObjectController, only: [:show])
       # get("/", GetController, :show)

@@ -59,12 +59,16 @@ config :phoenix, :json_library, Jason
 
 # Custom mime types
 config :mime, :types, %{
-  "application/cdmi-capability" => ["cdmia"],
-  "application/cdmi-container" => ["cdmic"],
-  "application/cdmi-domain" => ["cdmid"],
-  "application/cdmi-object" => ["cdmio"],
-  "application/cdmi-queue" => ["cdmiq"]
+  "application/cdmi-container" => ["cdmic"]
 }
+
+# config :mime, :types, %{
+#   "application/cdmi-capability" => ["cdmia"],
+#   "application/cdmi-container" => ["cdmic"],
+#   "application/cdmi-domain" => ["cdmid"],
+#   "application/cdmi-object" => ["cdmio"],
+#   "application/cdmi-queue" => ["cdmiq"]
+# }
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
