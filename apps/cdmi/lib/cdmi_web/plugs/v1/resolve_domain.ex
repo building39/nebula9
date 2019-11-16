@@ -1,4 +1,4 @@
-defmodule CdmiWeb.V1.ResolveDomain do
+defmodule CdmiWeb.Plugs.V1.ResolveDomain do
   @moduledoc """
   Resolve the user's domain.
 
@@ -24,54 +24,15 @@ defmodule CdmiWeb.V1.ResolveDomain do
   end
 
   @doc """
-  Right now, everything lives in the system domain.
-  User domains will be implemented later.
+
   """
   def call(conn, _opts) do
     Logger.debug("ResolveDomain plug")
     auth = get_req_header(conn, "authorization")
-    Logger.debug("Auth header: #{inspect(auth)}")
-    # if Enum.member?(["cdmi_domains", "/"], Enum.at(conn.path_info, 2)) do
-    #   conn
-    #   |> assign(:cdmi_domain, "system_domain/")
-    # else
-    new_conn =
-      case auth do
-        [] ->
-          request_fail(conn, :forbidden, "Forbidden")
+    Logger.debug("Auth: #{inspect(auth)}")
 
-        x ->
-          Logger.debug("AUTH: #{inspect x}")
-          [method, authstring] = String.split(List.to_string(auth))
-          authstring = Base.decode64!(authstring)
-
-          domain =
-            case method do
-              "Basic" ->
-                options =
-                  authstring
-                  |> String.split(";")
-                  |> List.last()
-                  |> String.split(",")
-
-                Logger.debug("XYZ options: #{inspect(options)}")
-                domain = get_realm(options)
-                Logger.debug("Resolved domain: #{inspect(domain)}")
-
-                if domain == nil do
-                  get_domain_from_realm_map(conn)
-                else
-                  domain
-                end
-            end
-
-          conn
-          |> assign(:cdmi_domain, domain)
-      end
-
-    Logger.debug("Domain resolved to: #{inspect(new_conn, pretty: true)}")
-    new_conn
-    # end
+    resolve(conn, auth)
+    |> validate()
   end
 
   @spec get_domain_from_realm_map(Plug.Conn.t()) :: String.t()
@@ -81,9 +42,12 @@ defmodule CdmiWeb.V1.ResolveDomain do
     query = "sp:" <> domain_hash <> "/system_configuration/domain_maps"
     {:ok, domain_maps} = @backend.search(conn.assigns.metadata_backend, query)
     {:ok, domain_maps} = Jason.decode(domain_maps.value)
-    {_, domain} = Enum.find(domain_maps, {"", "default_domain/"}, fn {k, _v} -> k == conn.host end)
-    Logger.debug("domain map: #{inspect domain_maps, pretty: true}")
-    Logger.debug("Got this domain: #{inspect domain}")
+
+    {_, domain} =
+      Enum.find(domain_maps, {"", "default_domain/"}, fn {k, _v} -> k == conn.host end)
+
+    Logger.debug("domain map: #{inspect(domain_maps, pretty: true)}")
+    Logger.debug("Got this domain: #{inspect(domain)}")
     domain
   end
 
@@ -93,7 +57,6 @@ defmodule CdmiWeb.V1.ResolveDomain do
   end
 
   defp get_realm([option | rest]) do
-
     if String.starts_with?(option, "realm=") do
       [_, domain] = String.split(option, "=")
 
@@ -104,6 +67,63 @@ defmodule CdmiWeb.V1.ResolveDomain do
       end
     else
       get_realm(rest)
+    end
+  end
+
+  @spec resolve(Plug.Conn.t(), list()) :: Plug.Conn.t()
+  defp resolve(conn, []) do
+    request_fail(conn, :forbidden, "Forbidden")
+  end
+
+  defp resolve(conn, auth) do
+    [method, authstring] = String.split(List.to_string(auth))
+    authstring = Base.decode64!(authstring)
+
+    domain =
+      case method do
+        "Basic" ->
+          options =
+            authstring
+            |> String.split(";")
+            |> List.last()
+            |> String.split(",")
+
+          Logger.debug("XYZ options: #{inspect(options)}")
+          domain = get_realm(options)
+          Logger.debug("Resolved domain: #{inspect(domain)}")
+
+          if domain == nil do
+            get_domain_from_realm_map(conn)
+          else
+            domain
+          end
+      end
+
+    Logger.debug("Domain resolved to: #{inspect(domain)}")
+
+    conn
+    |> assign(:cdmi_domain, domain)
+  end
+
+  @spec validate(Plug.Conn.t()) :: Plug.Conn.t()
+  defp validate(conn = %{status: 403}) do
+    conn
+  end
+
+  defp validate(conn) do
+    domain = conn.assigns.cdmi_domain
+    domain_hash = get_domain_hash("/cdmi_domains/" <> domain)
+    query = "sp:" <> domain_hash <> "/cdmi_domains/#{domain}"
+    {rc, data} = @backend.search(conn.assigns.metadata_backend, query)
+
+    if rc == :ok and data.objectType == domain_object() do
+      if Map.get(data.metadata, :cdmi_domain_enabled, true) do
+        conn
+      else
+        request_fail(conn, :forbidden, "Forbidden")
+      end
+    else
+      request_fail(conn, :forbidden, "Forbidden")
     end
   end
 end
