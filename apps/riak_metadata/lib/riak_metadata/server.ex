@@ -4,6 +4,7 @@ defmodule RiakMetadata.Server do
 
   use GenServer
   require Logger
+  @domain_uri "/cdmi_domains/"
   import RiakMetadata.State
 
   def start_link(state) do
@@ -34,11 +35,12 @@ defmodule RiakMetadata.Server do
     {:reply, put(key, data, state), state}
   end
 
-  def handle_call({:search, query}, _from, state) do
+  def handle_call({:search, domain, path}, _from, state) do
     Logger.debug("handle_call: :search")
+    domain_hash = get_domain_hash(@domain_uri <> domain)
+    query = "sp:" <> domain_hash <> "/"
     s = search(query, state)
     {:reply, s, state}
-    # {:reply, search(query, state), state}
   end
 
   def handle_call({:update, key, data}, _from, state) do

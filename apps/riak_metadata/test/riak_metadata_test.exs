@@ -1,5 +1,5 @@
 defmodule RiakMetadataTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   import Mox
   require Logger
 
@@ -347,7 +347,8 @@ defmodule RiakMetadataTest do
       # test that we get back the object that the end user searched for
       assert RiakMetadata.Server.handle_call(
                {:search,
-                "c8c17baf9a68a8dbc75b818b24269ebca06b0f31/system_configuration/domain_maps"},
+                "system_domain/",
+                "/system_configuration/domain_maps"},
                self(),
                state
              ) ==
@@ -356,21 +357,22 @@ defmodule RiakMetadataTest do
       assert RiakMetadata.Cache.get(expected_object.objectID) == expected_object
 
       # test that we get a not found condition for a query on a non-existant object
-      assert RiakMetadata.Server.handle_call(
+      {:reply, {rc, data}, _} = assert RiakMetadata.Server.handle_call(
                {:search,
-                "c8c17baf9a68a8dbc75b818b24269ebca06b0000/system_configuration/domain_maps"},
+                "system/_domain/",
+                "/system_configuration/domain_maps"},
                self(),
                state
-             ) ==
-               {:reply,
-                {:not_found,
-                 "c8c17baf9a68a8dbc75b818b24269ebca06b0000/system_configuration/domain_maps"},
-                state}
+              )
+      Logger.debug("rc: #{inspect rc} Data: #{inspect data}")
+      assert rc == :not_found
 
-      # test dor duplicate record found
+      # test for duplicate record found
+      RiakMetadata.Cache.flush()
       assert RiakMetadata.Server.handle_call(
                {:search,
-                "c8c17baf9a68a8dbc75b818b24269ebca06b0000/system_configuration/domain_maps"},
+                "system_domain/",
+                "/system_configuration/domain_maps"},
                self(),
                state
              ) ==
