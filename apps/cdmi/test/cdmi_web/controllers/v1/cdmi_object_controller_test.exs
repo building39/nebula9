@@ -142,29 +142,6 @@ defmodule CdmiObjectControllerTest do
       }
     end
 
-    test "create capabilities object fails with bad request", %{
-      capabilities_object: capabilities_object
-    } do
-      objectID = capabilities_object.objectID
-      CdmiWeb.Util.MockMetadataBackend
-      |> expect(:get, fn _module, _query ->
-        {:ok, capabilities_object}
-      end)
-
-      system_domain = "system_domain/"
-      user = "admin"
-      pswd = "secret"
-      auth_string = Base.encode64(user <> ":" <> pswd <> ";realm=" <> system_domain)
-      conn =
-        build_conn()
-        |> assign(:metadata_backend, RiakMetadata)
-        |> put_req_header("authorization", "Basic " <> auth_string)
-
-      conn2 = get(conn, :delete, id: objectID)
-      |> json_response(400)
-      assert %{"error" => "Capabilities are immutable"} == conn2
-    end
-    
     test "get capabilities object by object id", %{
       capabilities_object: capabilities_object
     } do
@@ -237,92 +214,5 @@ defmodule CdmiObjectControllerTest do
       assert %{"error" => "Not found"} == conn2
     end
 
-    test "delete non-existant object" do
-      objectID = "0000000000000000000000000000000000000000"
-      CdmiWeb.Util.MockMetadataBackend
-      |> expect(:get, fn _module, _query ->
-        {:not_found, objectID}
-      end)
-
-      system_domain = "system_domain/"
-      user = "admin"
-      pswd = "secret"
-      auth_string = Base.encode64(user <> ":" <> pswd <> ";realm=" <> system_domain)
-      conn =
-        build_conn()
-        |> assign(:metadata_backend, RiakMetadata)
-        |> put_req_header("authorization", "Basic " <> auth_string)
-
-      conn2 = get(conn, :delete, id: objectID)
-      |> json_response(404)
-      assert %{"error" => "Not found"} == conn2
-    end
-
-    test "delete capabilities object fails with bad request", %{
-      capabilities_object: capabilities_object
-    } do
-      objectID = capabilities_object.objectID
-      CdmiWeb.Util.MockMetadataBackend
-      |> expect(:get, fn _module, _query ->
-        {:ok, capabilities_object}
-      end)
-
-      system_domain = "system_domain/"
-      user = "admin"
-      pswd = "secret"
-      auth_string = Base.encode64(user <> ":" <> pswd <> ";realm=" <> system_domain)
-      conn =
-        build_conn()
-        |> assign(:metadata_backend, RiakMetadata)
-        |> put_req_header("authorization", "Basic " <> auth_string)
-
-      conn2 = get(conn, :delete, id: objectID)
-      |> json_response(400)
-      assert %{"error" => "Capabilities are immutable"} == conn2
-    end
-
-    test "update non-existant object" do
-      objectID = "0000000000000000000000000000000000000000"
-      CdmiWeb.Util.MockMetadataBackend
-      |> expect(:get, fn _module, _query ->
-        {:not_found, objectID}
-      end)
-
-      system_domain = "system_domain/"
-      user = "admin"
-      pswd = "secret"
-      auth_string = Base.encode64(user <> ":" <> pswd <> ";realm=" <> system_domain)
-      conn =
-        build_conn()
-        |> assign(:metadata_backend, RiakMetadata)
-        |> put_req_header("authorization", "Basic " <> auth_string)
-
-      conn2 = get(conn, :delete, id: objectID)
-      |> json_response(404)
-      assert %{"error" => "Not found"} == conn2
-    end
-
-    test "update capabilities object fails with bad request", %{
-      capabilities_object: capabilities_object
-    } do
-      objectID = capabilities_object.objectID
-      CdmiWeb.Util.MockMetadataBackend
-      |> expect(:get, fn _module, _query ->
-        {:ok, capabilities_object}
-      end)
-
-      system_domain = "system_domain/"
-      user = "admin"
-      pswd = "secret"
-      auth_string = Base.encode64(user <> ":" <> pswd <> ";realm=" <> system_domain)
-      conn =
-        build_conn()
-        |> assign(:metadata_backend, RiakMetadata)
-        |> put_req_header("authorization", "Basic " <> auth_string)
-
-      conn2 = get(conn, :delete, id: objectID)
-      |> json_response(400)
-      assert %{"error" => "Capabilities are immutable"} == conn2
-    end
   end
 end
