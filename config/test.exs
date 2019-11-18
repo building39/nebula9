@@ -11,6 +11,7 @@ config :cdmi,
   metadata_module: CdmiWeb.Util.MockMetadataBackend,
   metadata_backend: RiakMetadata
 
+config :cdmi, metadatabackend: CdmiWeb.Util.MockMetadataBackend
 config :riak_metadata, riak_client: RiakMetadata.Riak.MockClient
 
 config :riak_metadata, RiakMetadata.Cache,

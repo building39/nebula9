@@ -10,6 +10,7 @@ defmodule CdmiWeb.Plugs.V1.Prefetch do
   @container_object container_object()
 
   def init(opts) do
+    Logger.debug("Prefetch plug init")
     opts
   end
 

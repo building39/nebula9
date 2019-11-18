@@ -10,18 +10,18 @@ defmodule CdmiWeb.Router do
     plug(CdmiWeb.Plugs.V1.ResolveDomain)
     # plug(CdmiWeb.Plugs.V1.ApplyCapabilities)
     # plug(CdmiWeb.Plugs.V1.Authentication)
-    # plug(CdmiWeb.Plugs.V1.Prefetch)
+    plug(CdmiWeb.Plugs.V1.Prefetch)
     # plug CdmiWeb.Plugs.V1.ApplyACLs
   end
 
   scope "/cdmi", CdmiWeb do
     Logger.debug("CDMI scope")
-    pipe_through(:cdmi)
+    # pipe_through(:cdmi)
 
     scope "/v1", V1, as: :v1 do
       get("/", CdmiRootContainerController, :show)
       # get("/cdmi_objectid/:id", CdmiObjectController, :show)
-      resources("/cdmi_objectid", CdmiObjectController, only: [:show])
+      resources("/cdmi_objectid", CdmiObjectController, only: [:delete, :show])
       # get("/", GetController, :show)
       # get("/*path", GetController, :show)
       # delete("/cdmi_objectid/:id", CdmiObjectController, :delete)
@@ -33,6 +33,7 @@ defmodule CdmiWeb.Router do
       # post("/*path", PostController, :update)
       # put("/", PutController, :create)
       # put("/*path", PutController, :create)
+      pipe_through(:cdmi)
     end
   end
 end

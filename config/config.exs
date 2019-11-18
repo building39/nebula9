@@ -14,12 +14,12 @@ config :cdmi, CdmiWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "CsNP28bwK3bCyXmqn616NAAku+g9EhbeT0mpfuTMxh+vxx5Ek5XyTLa4m24XkoKP",
   render_errors: [view: CdmiWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Cdmi.PubSub, adapter: Phoenix.PubSub.PG2],
-  cdmi_versions: ["1.1", "1.1.1"]
+  pubsub: [name: Cdmi.PubSub, adapter: Phoenix.PubSub.PG2]
 
 config :cdmi,
   metadata_module: CdmiWeb.Util.MetadataBackend,
-  metadata_backend: RiakMetadata
+  metadata_backend: RiakMetadata,
+  cdmi_versions: ["1.1", "1.1.1"]
 
 # Configures Elixir's Logger
 config :logger,

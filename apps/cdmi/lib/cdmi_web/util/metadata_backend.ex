@@ -17,6 +17,7 @@ defmodule CdmiWeb.Util.MetadataBackend do
 
   @spec get(atom(), String.t()) :: {:ok | :not_found, map()}
   def get(metadata_backend, key) do
+    Logger.debug("In CdmiWeb.Util.MetadataBackend.get")
     GenServer.call(metadata_backend, {:get, key})
   end
 

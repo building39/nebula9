@@ -452,7 +452,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
       def set_mandatory_response_headers(conn, resource) do
         conn
         |> put_resp_header(
-          "X-CDMI-Specification-Version",
+          "x-cdmi-specification-version",
           Enum.join(Application.get_env(:cdmi, :cdmi_versions), ",")
         )
         |> put_resp_header("content-type", resource)
