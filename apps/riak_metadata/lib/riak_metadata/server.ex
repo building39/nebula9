@@ -38,7 +38,7 @@ defmodule RiakMetadata.Server do
   def handle_call({:search, domain, path}, _from, state) do
     Logger.debug("handle_call: :search")
     domain_hash = get_domain_hash(@domain_uri <> domain)
-    query = "sp:" <> domain_hash <> "/"
+    query = "sp:" <> domain_hash <> path
     s = search(query, state)
     {:reply, s, state}
   end
