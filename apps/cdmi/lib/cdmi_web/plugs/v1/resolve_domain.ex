@@ -36,9 +36,7 @@ defmodule CdmiWeb.Plugs.V1.ResolveDomain do
 
   @spec get_domain_from_realm_map(Plug.Conn.t()) :: String.t()
   defp get_domain_from_realm_map(conn) do
-    domain_hash = get_domain_hash("/cdmi_domains/system_domain/")
-    query = "sp:" <> domain_hash <> "/system_configuration/domain_maps"
-    {:ok, domain_maps} = @backend.search(conn.assigns.metadata_backend, query)
+    {:ok, domain_maps} = @backend.search(conn.assigns.metadata_backend, "system_domain/", "/system_configuration/domain_maps")
     {:ok, domain_maps} = Jason.decode(domain_maps.value)
 
     {_, domain} =
@@ -104,9 +102,7 @@ defmodule CdmiWeb.Plugs.V1.ResolveDomain do
 
   defp validate(conn) do
     domain = conn.assigns.cdmi_domain
-    domain_hash = get_domain_hash("/cdmi_domains/" <> domain)
-    query = "sp:" <> domain_hash <> "/cdmi_domains/#{domain}"
-    {rc, data} = @backend.search(conn.assigns.metadata_backend, query)
+    {rc, data} = @backend.search(conn.assigns.metadata_backend, domain, "/cdmi_domains/#{domain}")
 
     if rc == :ok and data.objectType == domain_object() do
       if Map.get(data.metadata, :cdmi_domain_enabled, true) do

@@ -2,7 +2,7 @@ defmodule CdmiWeb.V1.CdmiObjectController do
   @moduledoc """
   Handle cdmi_object resources
   """
-  @metadata_client Application.get_env(:cdmi, :metadatabackend)
+  @backend Application.get_env(:cdmi, :metadata_module)
   use CdmiWeb, :controller
   use CdmiWeb.Util.ControllerCommon
 
@@ -10,7 +10,7 @@ defmodule CdmiWeb.V1.CdmiObjectController do
 
   @spec show(Plug.Conn.t(), map) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
-    handle_show(conn, @metadata_client.get(conn.assigns.metadata_backend, id))
+    handle_show(conn, @backend.get(conn.assigns.metadata_backend, id))
   end
 
   @spec handle_show(Plug.Conn.t(), {atom, map}) :: Plug.Conn.t()
@@ -22,7 +22,7 @@ defmodule CdmiWeb.V1.CdmiObjectController do
     request_fail(conn, :not_found, "Not found")
   end
 
-  defp handle_show(conn, {rc, _data}) do
+  defp handle_show(conn, {_rc, _data}) do
     request_fail(conn, :rc, "Bad Request")
   end
 

@@ -26,10 +26,10 @@ defmodule CdmiWeb.Util.MetadataBackend do
     GenServer.call(metadata_backend, {:put, key, data})
   end
 
-  @spec search(atom(), String.t()) ::
+  @spec search(atom(), String.t(), String.t()) ::
           {:ok, map()} | {:not_found, String.t()} | {:multiples, term(), float()}
-  def search(metadata_backend, query) do
-    GenServer.call(metadata_backend, {:search, query})
+  def search(metadata_backend, domain, path) do
+    GenServer.call(metadata_backend, {:search, domain, path})
   end
 
   @spec update(atom(), String.t(), map()) :: {:ok, map()} | {:not_found, String.t()}

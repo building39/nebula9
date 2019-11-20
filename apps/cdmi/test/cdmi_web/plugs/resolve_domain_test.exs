@@ -50,10 +50,10 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
       enabled_domain: enabled_domain
     } do
       CdmiWeb.Util.MockMetadataBackend
-      |> expect(:search, fn _module, _query ->
+      |> expect(:search, fn _module, _domain, _path ->
         {:ok, domain_map}
       end)
-      |> expect(:search, fn _module, _query ->
+      |> expect(:search, fn _module, _domain, _path ->
         {:ok, enabled_domain}
       end)
 
@@ -75,7 +75,7 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
       system_domain: domain
     } do
       CdmiWeb.Util.MockMetadataBackend
-      |> expect(:search, fn _module, _query ->
+      |> expect(:search, fn _module, _domain, _path ->
         {:ok, enabled_domain}
       end)
 
@@ -97,7 +97,7 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
       system_domain: domain
     } do
       CdmiWeb.Util.MockMetadataBackend
-      |> expect(:search, fn _module, _query ->
+      |> expect(:search, fn _module, _domain, _path ->
         {:ok, disabled_domain}
       end)
 
@@ -119,7 +119,7 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
       system_domain: domain
     } do
       CdmiWeb.Util.MockMetadataBackend
-      |> expect(:search, fn _module, _query ->
+      |> expect(:search, fn _module, _domain, _path ->
         {:not_found, nil}
       end)
 
@@ -152,7 +152,7 @@ defmodule CdmiWeb.Plugs.ResolveDomainTest do
       system_domain: domain
     } do
       CdmiWeb.Util.MockMetadataBackend
-      |> expect(:search, fn _module, _query ->
+      |> expect(:search, fn _module, _domain, _path ->
         {:ok, enabled_domain}
       end)
 

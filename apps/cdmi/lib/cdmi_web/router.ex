@@ -20,8 +20,9 @@ defmodule CdmiWeb.Router do
 
     scope "/v1", V1, as: :v1 do
       get("/", CdmiRootContainerController, :show)
+      put("/", CdmiRootContainerController, :create)
       # get("/cdmi_objectid/:id", CdmiObjectController, :show)
-      resources("/cdmi_objectid", CdmiObjectController, only: [:delete, :show])
+      resources("/cdmi_objectid", CdmiObjectController, only: [:show])
       # get("/", GetController, :show)
       # get("/*path", GetController, :show)
       # delete("/cdmi_objectid/:id", CdmiObjectController, :delete)

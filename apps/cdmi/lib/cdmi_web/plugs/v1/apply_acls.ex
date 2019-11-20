@@ -6,7 +6,6 @@ defmodule CdmiWeb.Plugs.V1.ApplyACLs do
   import Plug.Conn
   import Phoenix.Controller
   import CdmiWeb.Util.Constants
-  import CdmiWeb.Util.Utils, only: [get_domain_hash: 1]
   use CdmiWeb.Util.ControllerCommon
   require Logger
 

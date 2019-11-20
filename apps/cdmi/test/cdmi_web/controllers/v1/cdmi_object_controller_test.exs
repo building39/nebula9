@@ -3,7 +3,6 @@ defmodule CdmiObjectControllerTest do
 
   import Mox
   import CdmiWeb.Util.Constants, only: [domain_object: 0]
-  require Logger
 
   @endpoint CdmiWeb.V1.CdmiObjectController
 

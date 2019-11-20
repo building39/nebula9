@@ -13,6 +13,7 @@ defmodule CdmiWeb.Util.Constants do
   @dataobject_capabilities_uri "/cdmi_capabilities/dataobject/"
   @domain_uri "/cdmi_domains/"
   @domain_capabilities_uri "/cdmi_capabilities/domain/"
+  @system_domain "system_domain/"
   @system_capabilities_uri "/cdmi_capabilities/"
   @system_domain_uri "/cdmi_domains/system_domain/"
   @render_object_type [
@@ -70,6 +71,10 @@ defmodule CdmiWeb.Util.Constants do
 
   def system_capabilities_uri() do
     @system_capabilities_uri
+  end
+
+  def system_domain() do
+    @system_domain
   end
 
   def system_domain_uri() do

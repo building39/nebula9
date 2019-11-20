@@ -62,9 +62,7 @@ defmodule CdmiWeb.Plugs.V1.Authentication do
     Logger.debug("password is #{inspect(password)}")
     Logger.debug("user is #{inspect(user)}")
     Logger.debug("domain is #{inspect(domain)}")
-    domain_hash = get_domain_hash("/cdmi_domains/" <> domain)
-    query = "sp:" <> domain_hash <> "/cdmi_domains/" <> domain <> "cdmi_domain_members/" <> user
-    user_obj = MetadataBackend.search(conn.assigns.metadata_backend, query)
+    user_obj = MetadataBackend.search(conn.assigns.metadata_backend, domain, "/cdmi_domains/" <> domain <> "cdmi_domain_members/" <> user)
     Logger.debug("response from search: #{inspect(user_obj)}")
 
     case user_obj do
@@ -72,7 +70,7 @@ defmodule CdmiWeb.Plugs.V1.Authentication do
         Logger.debug("Auth Data: #{inspect(data, pretty: true)}")
         creds = data.metadata.cdmi_member_credentials
 
-        if creds == encrypt(user, password) do
+        if creds == Utils.encrypt(user, password) do
           {user, data.metadata.cdmi_member_privileges}
         else
           {:unauthorized, nil}

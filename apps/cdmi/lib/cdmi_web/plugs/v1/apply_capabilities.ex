@@ -6,7 +6,6 @@ defmodule CdmiWeb.Plugs.V1.ApplyCapabilities do
   import Plug.Conn
   import Phoenix.Controller
   import CdmiWeb.Util.Constants
-  import CdmiWeb.Util.Utils, only: [get_domain_hash: 1]
   use CdmiWeb.Util.ControllerCommon
   require Logger
 
@@ -24,9 +23,8 @@ defmodule CdmiWeb.Plugs.V1.ApplyCapabilities do
 
   def call(conn, _opts) do
     Logger.debug("ApplyCapabilities plug")
-    domain_hash = get_domain_hash(system_domain_uri())
-    query = "sp:" <> domain_hash <> system_capabilities_uri()
-    {rc, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, query)
+
+    {rc, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, system_domain_uri(), system_capabilities_uri())
 
     case rc do
       :ok ->

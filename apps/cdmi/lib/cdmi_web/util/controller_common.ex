@@ -6,7 +6,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
   defmacro __using__(_) do
     quote do
       import CdmiWeb.Util.Constants
-      import CdmiWeb.Util.Utils
+      alias CdmiWeb.Util.Utils
       require Logger
       alias CdmiWeb.Util.MetadataBackend
 
@@ -38,12 +38,8 @@ defmodule CdmiWeb.Util.ControllerCommon do
         Logger.debug("conn: #{inspect(conn, pretty: true)}")
 
         container = conn.assigns.data
-        Logger.debug("XYZ calling get_domain_hash")
 
-        query =
-          "sp:" <> get_domain_hash("/cdmi_domains/system_domain/") <> container.capabilitiesURI
-
-        {:ok, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, query)
+        {:ok, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, system_domain(), container.capabilitiesURI)
         capabilities = Map.get(capabilities, :capabilities)
 
         can_delete =
@@ -70,12 +66,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         Logger.debug(fn -> "In check_capabilities PUT" end)
 
         parent = conn.assigns.parent
-        Logger.debug("parent is: #{inspect(parent)}")
-        Logger.debug("parent capabilitiesURI: #{inspect(parent.capabilitiesURI)}")
-
-        query = "sp:" <> get_domain_hash("/cdmi_domains/system_domain/") <> parent.capabilitiesURI
-
-        {:ok, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, query)
+        {:ok, capabilities} = MetadataBackend.search(conn.assigns.metadata_backend, system_domain(), parent.capabilitiesURI)
 
         capabilities = Map.get(capabilities, :capabilities)
         Logger.debug("got capabilities: #{inspect(capabilities, pretty: true)}")
@@ -130,10 +121,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
           domain = conn.assigns.cdmi_domain
           Logger.debug(fn -> "Domain is #{inspect(domain)}" end)
           domain_string = "/cdmi_domains/#{domain}"
-          Logger.debug("XYZ calling get_domain_hash for #{inspect(domain_string)}")
-          domain_hash = get_domain_hash(domain_string)
-          query = "sp:" <> domain_hash <> domain_string
-          {rc, data} = MetadataBackend.search(conn.assigns.metadata_backend, query)
+            {rc, data} = MetadataBackend.search(conn.assigns.metadata_backend, domain, domain_string)
 
           if rc == :ok and data.objectType == domain_object() do
             if Map.get(data.metadata, :cdmi_domain_enabled, false) do
@@ -160,10 +148,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
       defp construct_domain(conn, domain) do
         Logger.debug("constructing a new domain URI for domain: #{inspect(domain)}")
 
-        hash = get_domain_hash("/cdmi_domains/" <> domain)
-        query = "sp:" <> hash <> "/cdmi_domains/" <> domain
-        Logger.debug("query: #{inspect(query)}")
-        response = MetadataBackend.search(conn.assigns.metadata_backend, query)
+        response = MetadataBackend.search(conn.assigns.metadata_backend, domain, domain)
         Logger.debug("search results: #{inspect(response)}")
 
         case tuple_size(response) do
@@ -202,7 +187,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
       defp construct_metadata(auth_as) do
         Logger.debug(fn -> "In construct_metadata" end)
         Logger.debug(fn -> "auth_as: #{inspect(auth_as)}" end)
-        timestamp = make_timestamp()
+        timestamp = Utils.make_timestamp()
         # timestamp = List.to_string(Nebula.Util.Utils.make_timestamp())
         Logger.debug(fn -> "Hi there!" end)
         Logger.debug(fn -> "timestamp: #{inspect(timestamp)}" end)
@@ -333,19 +318,13 @@ defmodule CdmiWeb.Util.ControllerCommon do
           MetadataBackend.delete(conn.assigns.metadata_backend, oid)
         else
           children = Map.get(obj, :children, [])
-          Logger.debug("XYZ calling get_domain_hash")
-          hash = get_domain_hash(obj.domainURI)
-          Logger.debug("setting parentURI")
-          query = "sp:" <> hash <> obj.parentURI <> obj.objectName
-          Logger.debug("parentURI ok")
 
           if length(children) == 0 do
             MetadataBackend.delete(conn.assigns.metadata_backend, oid)
           else
             for child <- children do
-              query = query <> child
 
-              case MetadataBackend.search(conn.assigns.metadata_backend, query) do
+              case MetadataBackend.search(conn.assigns.metadata_backend, obj.domainURI, obj.parentURI <> obj.objectName) do
                 {:ok, data} ->
                   handle_delete(data)
 
@@ -389,18 +368,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         Logger.debug("Assign 2: #{inspect(conn2.assigns, pretty: true)}")
         Logger.debug("XYZ calling get_domain_hash")
 
-        domain_hash =
-          if parent_uri == "/" do
-            # Root container always resides in system_domain
-            get_domain_hash("/cdmi_domains/system_domain/")
-          else
-            Logger.debug("conn2.assigns.cdmi_domain: #{inspect(conn2.assigns.cdmi_domain)}")
-            get_domain_hash("/cdmi_domains/" <> conn2.assigns.cdmi_domain)
-          end
-
-        Logger.debug("domain_hash #{inspect(domain_hash)}")
-        query = "sp:" <> domain_hash <> parent_uri
-        parent_obj = MetadataBackend.search(conn.assigns.metadata_backend, query)
+        parent_obj = MetadataBackend.search(conn.assigns.metadata_backend, conn2.assigns.cdmi_domain, parent_uri)
 
         case parent_obj do
           {:ok, data} ->
@@ -410,7 +378,6 @@ defmodule CdmiWeb.Util.ControllerCommon do
             c
 
           {_, _} ->
-            Logger.debug("couldn't find parent container #{inspect(query)}")
             request_fail(conn, :not_found, "Parent container does not exist")
         end
       end

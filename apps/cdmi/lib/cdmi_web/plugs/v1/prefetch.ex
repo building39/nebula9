@@ -2,8 +2,6 @@ defmodule CdmiWeb.Plugs.V1.Prefetch do
   import Plug.Conn
   import Phoenix.Controller
   import CdmiWeb.Util.Constants
-
-  import CdmiWeb.Util.Utils, only: [get_domain_hash: 1]
   use CdmiWeb.Util.ControllerCommon
   require Logger
 
@@ -39,11 +37,7 @@ defmodule CdmiWeb.Plugs.V1.Prefetch do
 
     Logger.debug(fn -> "req_path: #{inspect(req_path)}" end)
     domain = conn.assigns.cdmi_domain
-    domain_hash = get_domain_hash("/cdmi_domains/" <> domain)
-    Logger.debug("domain_hash: #{inspect(domain_hash)}")
-    query = "sp:" <> domain_hash <> String.replace_prefix(req_path, "/api/v1", "")
-    Logger.debug("query: #{inspect(query)}")
-    {rc, data} = MetadataBackend.search(conn.assigns.metadata_backend, query)
+    {rc, data} = MetadataBackend.search(conn.assigns.metadata_backend, domain, String.replace_prefix(req_path, "/api/v1", ""))
     Logger.debug("rc: #{inspect(rc)} data: #{inspect(data)}")
 
     if rc == :ok do
