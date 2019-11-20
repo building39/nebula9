@@ -4,18 +4,19 @@ defmodule Cdmi.MixProject do
   def project do
     [
       app: :cdmi,
-      version: "0.1.0",
-      elixir: "~> 1.9",
       build_path: "../../_build",
-      config_path: "../../config/config.exs",
-      deps_path: "../../deps",
-      lockfile: "../../mix.lock",
-      elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      config_path: "../../config/config.exs",
+      deps: deps(),
+      deps_path: "../../deps",
+      dialyzer: [ignore_warnings: "dialyzer.ignore-warnings"],
+      elixir: "~> 1.9",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      lockfile: "../../mix.lock",
+      preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
-      deps: deps()
+      version: "0.1.0"
     ]
   end
 
@@ -38,18 +39,18 @@ defmodule Cdmi.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:cdmioid, git: "https://github.com/building39/cdmioid.git", branch: "master"},
       {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
-      {:phoenix, "~> 1.4"},
-      {:phoenix_pubsub, "~> 1.1"},
+      {:excoveralls, "~> 0.8", only: :test},
       {:gettext, "~> 0.11"},
+      {:hexate, "~> 0.6"},
       {:jason, "~> 1.0"},
       {:logger_file_backend, "~> 0.0"},
-      {:uuid, "~> 1.1"},
-      {:hexate, "~> 0.6"},
-      {:cdmioid, git: "https://github.com/building39/cdmioid.git", branch: "master"},
-      {:excoveralls, "~> 0.8", only: :test},
+      {:phoenix, "~> 1.4"},
+      {:phoenix_pubsub, "~> 1.1"},
+      {:plug_cowboy, "~> 2.0"},
       {:riak_metadata, in_umbrella: true},
-      {:plug_cowboy, "~> 2.0"}
+      {:uuid, "~> 1.1"}
     ]
   end
 end

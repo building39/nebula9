@@ -22,10 +22,6 @@ defmodule CdmiWeb.V1.CdmiObjectController do
     request_fail(conn, :not_found, "Not found")
   end
 
-  defp handle_show(conn, {_rc, _data}) do
-    request_fail(conn, :rc, "Bad Request")
-  end
-
   @spec handle_show_object(Plug.Conn.t(), map) :: Plug.Conn.t()
   defp handle_show_object(conn, data) do
     set_mandatory_response_headers(conn, data.objectType)

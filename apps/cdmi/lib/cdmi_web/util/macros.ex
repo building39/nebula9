@@ -5,7 +5,7 @@ defmodule CdmiWeb.Util.Macros do
 
   # Capture the mix environment at build time
   defmacro mix_build_env() do
-    Atom.to_string( Mix.env )
+    Atom.to_string( Mix.env() )
   end
 
   defmacro fix_container_path(conn) do

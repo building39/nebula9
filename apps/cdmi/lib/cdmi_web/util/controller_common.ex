@@ -309,7 +309,7 @@ defmodule CdmiWeb.Util.ControllerCommon do
         conn
       end
 
-      @spec handle_delete(Plug.Conn.t()) :: atom
+      @spec handle_delete(Plug.Conn.t()) :: {:ok, binary()} | {:not_found, binary()}
       def handle_delete(conn) do
         obj = conn.assigns.data
         oid = obj.objectID
@@ -317,27 +317,26 @@ defmodule CdmiWeb.Util.ControllerCommon do
         if obj.objectType == data_object() do
           MetadataBackend.delete(conn.assigns.metadata_backend, oid)
         else
-          children = Map.get(obj, :children, [])
-
-          if length(children) == 0 do
-            MetadataBackend.delete(conn.assigns.metadata_backend, oid)
-          else
-            for child <- children do
-
-              case MetadataBackend.search(conn.assigns.metadata_backend, obj.domainURI, obj.parentURI <> obj.objectName) do
-                {:ok, data} ->
-                  handle_delete(data)
-
-                _ ->
-                  nil
-              end
-
-              MetadataBackend.delete(conn.assigns.metadata_backend, oid)
-            end
-          end
+          delete_children(conn, obj)
         end
 
-        #        :ok
+      end
+
+      @spec delete_children(Plug.Conn.t(), map()) :: :ok
+      defp delete_children(conn, data) do
+        for child <- data.children do
+
+          case MetadataBackend.search(conn.assigns.metadata_backend, data.domainURI, data.parentURI <> data.objectName <> child) do
+            {:ok, child_data} ->
+              delete_children(conn, child_data)
+
+            _ ->
+              nil
+          end
+
+          MetadataBackend.delete(conn.assigns.metadata_backend, data.objectID)
+        end
+        :ok
       end
 
       @doc """

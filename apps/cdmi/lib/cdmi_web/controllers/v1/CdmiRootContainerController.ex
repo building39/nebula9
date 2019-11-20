@@ -28,8 +28,6 @@ defmodule CdmiWeb.V1.CdmiRootContainerController do
       :not_found ->
         request_fail(conn, :not_found, "Not Found")
 
-      other ->
-        request_fail(conn, :bad_request, other)
     end
   end
 end
