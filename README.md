@@ -1,7 +1,7 @@
 # Nebula
 
 This project aims to provide a full featured Cloud Data Management (CDMI) API
-for data storage andretrieval. More information on CDMI, including the latest
+for data storage and retrieval. More information on CDMI, including the latest
 CDMI reference, can be found at the [`Storage Network Industry Association's`](http://www.snia.org)
 [`CDMI Cloud Storage Standard`](https://www.snia.org/cloud/cdmi) webpage.
 
@@ -32,7 +32,7 @@ to provide data management services such as:
 ## Current State
 
 The current state of this project is in its infancy. Boot strapping basic
-required obects, and the creation of new domains and domain members (users) is
+required objects, and the creation of new domains and domain members (users) is
 working, as is the creation of new containers and data objects. Container and
 data object metadata retrieval is working, as is retrieving the data stored
 for a data object. Basic HTTP authentication of users (domain members) on
@@ -83,27 +83,20 @@ includes a three node riak cluster - three Ubuntu virtual machines.
     * Restart riak on each node
     * Join the nodes into a cluster: see (https://docs.basho.com/riak/kv/2.0.9/using/cluster-operations/adding-removing-nodes/)  
 
-Nebula also expects to have `memcached` running. Query results from the riak
-cluster are cached in `memcached` and accessed from there on subsequent reads,
-so make sure that you have `memcached` installed and running.
-
 Install Nebula:
-  * Clone this repository, as well as the [`bootstrapper`](git@github.com:building39/nebula_bootstrap.git)
+  * Clone this repository.
   * cd to the nebula directory and:
     * Install Nebula bucket types and indices to the riak cluster:
-      * cd to `./scripts`
+      * cd to `apps/riakmetadata/priv/scripts`
       * edit `setup_riak_indexing.sh` and change `RIAK_HOST=nebriak1.fuzzcat.loc`
         to point to one of the nodes in your riak cluster.
       * run the `setup_riak_indexing.sh` script.
     * Install dependencies with `mix deps.get`
-    * Configure `nebula_metadata`:
-      * cd to `deps\nebula_metadata\config\` and edit `config.exs`, changing
-        `start_mfa: { Riak.Connection, :start_link, ['nebriak1.fuzzcat.loc', 8087] }`
-        to point to one of your riak nodes. Replace 'nebriak1.fuzzcat.loc'.
+    * Configure `riakmetadata`:
+      * `config.exs`, changing
+        `config :riak_metadata, riak_serverip: <ip address or host name of one of the riak nodes> }`
     * Start Nebula with `mix phx.server`
-  * cd to the nebula_bootstrap directory and:
-    * Make the same change in `nebula_bootstrap\deps\nebula_metadata\config\config.exs`
-      mentioned above.
+  * cd to `apps/bootstrap` and:
     * Build the bootstrapper with `mix escript.build`
     * Bootstrap the system objects with `./nebula_bootstrap --adminid administrator --adminpw test`.
       Adjust `--adminid` and `--adminpw` to suit your needs. Note that all of the

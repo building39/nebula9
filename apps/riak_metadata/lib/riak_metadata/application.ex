@@ -1,14 +1,25 @@
 defmodule RiakMetadata.Application do
+  @moduledoc """
+    The RiakMetadata application provides an interface for manipulating CDMI
+    metadata in a `riak` cluster.
+
+    Configuration is done in config.exs, naturally. Configurable items are:
+        :riak_bucket_type Default: `<<"cdmi">>`
+        :riak_bucket_name Default: `<<"cdmi">>`
+        :riak_cdmi_index: Default: `<<"cdmi_idx">>`
+        :riak_serverip Default: "127.0.0.1"
+        :riak_serverport Default: 8087
+  """
 
   use Application
   require Logger
 
   def start(_type, _args) do
-    host = Application.get_env(:riak_metadata, :riak_serverip)
-    port = Application.get_env(:riak_metadata, :riak_serverport)
-    cdmi_index = Application.get_env(:riak_metadata, :riak_cdmi_index)
-    bucket_type = Application.get_env(:riak_metadata, :riak_bucket_type)
-    bucket_name = Application.get_env(:riak_metadata, :riak_bucket_name)
+    host = Application.get_env(:riak_metadata, :riak_serverip, "127.0.0.1")
+    port = Application.get_env(:riak_metadata, :riak_serverport, 8087)
+    cdmi_index = Application.get_env(:riak_metadata, :riak_cdmi_index, <<"cdmi_idx">>)
+    bucket_type = Application.get_env(:riak_metadata, :riak_bucket_type, <<"cdmi">>)
+    bucket_name = Application.get_env(:riak_metadata, :riak_bucket_name, <<"cdmi">>)
     bucket = {bucket_type, bucket_name}
 
     Logger.info("Starting the RIAK metadata backend")

@@ -41,7 +41,9 @@ defmodule Cdmi.MixProject do
     [
       {:cdmioid, git: "https://github.com/building39/cdmioid.git", branch: "master"},
       {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
+      {:earmark, "~> 1.4", only: :dev},
       {:excoveralls, "~> 0.8", only: :test},
+      {:ex_doc, "~> 0.21", only: :dev},
       {:gettext, "~> 0.11"},
       {:hexate, "~> 0.6"},
       {:jason, "~> 1.0"},

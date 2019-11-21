@@ -1,6 +1,8 @@
 import Config
 
-config :riak_metadata, riak_client: RiakMetadata.Riak.Client
+config :riak_metadata,
+  riak_client: RiakMetadata.Riak.Client,
+  riak_serverip: "192.168.2.12"
 
 config :riak_metadata, RiakMetadata.Cache,
   gc_interval: 60 # 60 seconds

@@ -22,14 +22,6 @@ defmodule RiakMetadata.MixProject do
   def application do
     [
       extra_applications: [:logger, :riak, :logger_file_backend],
-      env: [
-        riak_bucket_type: <<"cdmi">>,
-        riak_bucket_name: <<"cdmi">>,
-        riak_cdmi_index: <<"cdmi_idx">>,
-        riak_serverip: "192.168.2.11",
-        riak_serverport: 8087,
-        name_prefix: "cdmi"
-      ],
       mod: {RiakMetadata.Application, []}
     ]
   end
@@ -37,14 +29,15 @@ defmodule RiakMetadata.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-
-        {:logger_file_backend, "~> 0.0.11"},
-        {:riak, "~> 1.1"},
-        {:jason, "~> 1.1", override: true},
-        {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
-        {:mox, "~> 0.5", only: :test},
-        {:excoveralls, "~> 0.12", only: :test},
-        {:nebulex, "~> 1.1"}
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
+      {:earmark, "~> 1.4", only: :dev},
+      {:excoveralls, "~> 0.12", only: :test},
+      {:ex_doc, "~> 0.21", only: :dev},
+      {:jason, "~> 1.1", override: true},
+      {:logger_file_backend, "~> 0.0.11"},
+      {:mox, "~> 0.5", only: :test},
+      {:nebulex, "~> 1.1"},
+      {:riak, "~> 1.1"}
       # {:sibling_app_in_umbrella, in_umbrella: true}
     ]
   end

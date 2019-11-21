@@ -43,6 +43,15 @@ config :logger, :info_log,
   path: "log/info.log",
   level: :error
 
+# Custom mime types
+config :mime, :types, %{
+  "application/cdmi-capability" => ["cdmia"],
+  "application/cdmi-container" => ["cdmic"],
+  "application/cdmi-domain" => ["cdmid"],
+  "application/cdmi-object" => ["cdmio"],
+  "application/cdmi-queue" => ["cdmiq"]
+}
+
 config :pooler,
   pools: [
     [
@@ -57,18 +66,13 @@ config :pooler,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Custom mime types
-config :mime, :types, %{
-  "application/cdmi-container" => ["cdmic"]
-}
-
-# config :mime, :types, %{
-#   "application/cdmi-capability" => ["cdmia"],
-#   "application/cdmi-container" => ["cdmic"],
-#   "application/cdmi-domain" => ["cdmid"],
-#   "application/cdmi-object" => ["cdmio"],
-#   "application/cdmi-queue" => ["cdmiq"]
-# }
+# Configure riak metadata backend:
+config :riak_metadata,
+  riak_bucket_type: <<"cdmi">>,
+  riak_bucket_name: <<"cdmi">>,
+  riak_cdmi_index: <<"cdmi_idx">>,
+  riak_serverip: "192.168.2.11",
+  riak_serverport: 8087
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
