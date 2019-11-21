@@ -111,25 +111,28 @@ bootstrapper. The `default_domain` will have no users at this time.
 
 ## Playing with Nebula
 
-You will find a number of examples in `nebula\scripts`. Some of these are bash
-shell scripts, and some are python scripts. You will want to install `curl`
-if you don't already have it, and a (hopefully) complete list of python
-libraries can be found in `./scripts/python_package_dependencies.txt`.
+You will find a number of examples in `apps/cdmi/priv/scripts` and
+`apps/riakmetadata/priv/scripts`. Some of these are bash shell scripts, and some
+are python scripts. You will want to install `curl` if you don't already have
+it, and a (hopefully) complete list of python libraries can be found in
+`apps/cdmi/priv/scripts/python_package_dependencies.txt`.
 
 A few of the more interesting scripts:
 
-  * deleteall.py - Deletes all data stored in the riak cluster. Typically used
-    to return Nebula to the initial state. Run this script followed by the
-    bootstrapper script described above.
-  * listall.py - Dumps all data from the riak cluster. Useful for debugging
-    purposes.
-  * new_domain.sh - Creates a new domain
-  * new_domain_member.sh - Creates a new domain member (user) in a domain.
-  * get_root_container.sh - Returns the metadata for the root container.
-  * new_container.sh - Creates a new container.
-  * new_dataobject.sh - Creates a new data object.
-  * check_consistency.py - Checks the consistency of the objects - that data
-    objects have the correct parent information, etc.
+  * `apps/riakmetadata/priv/scripts/deleteall.py` - Deletes all data stored in
+    the riak cluster. Typically used to return Nebula to the initial state. Run
+    this script followed by the `bootstrapper` script described above.
+  * `apps/riakmetadata/priv/scripts/listall.py` - Dumps all data from the riak
+    cluster. Useful for debugging purposes.
+  * `apps/cdmi/priv/scripts/new_domain.sh` - Creates a new domain
+  * `apps/cdmi/priv/scripts/new_domain_member.sh` - Creates a new domain member
+    (user) in a domain.
+  * `apps/cdmi/priv/scripts/get_root_container.sh` - Returns the metadata for
+    the root container.
+  * `apps/cdmi/priv/scripts/new_container.sh` - Creates a new container.
+  * `apps/cdmi/priv/scripts/new_dataobject.sh` - Creates a new data object.
+  * `apps/cdmi/priv/scripts/check_consistency.py` - Checks the consistency of
+    the objects - that data objects have the correct parent information, etc.
 
 There are several scripts in the `./scripts` directory - some of them work,
 some of them may not. All will likely need changing to reflect your riak
