@@ -9,7 +9,7 @@ defmodule CdmiWeb.Router do
     plug(CdmiWeb.Plugs.V1.CDMIVersion)
     plug(CdmiWeb.Plugs.V1.ResolveDomain)
     # plug(CdmiWeb.Plugs.V1.ApplyCapabilities)
-    # plug(CdmiWeb.Plugs.V1.Authentication)
+    plug(CdmiWeb.Plugs.V1.Authentication)
     plug(CdmiWeb.Plugs.V1.Prefetch)
     # plug CdmiWeb.Plugs.V1.ApplyACLs
   end

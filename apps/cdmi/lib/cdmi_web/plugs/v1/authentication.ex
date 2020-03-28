@@ -6,6 +6,9 @@ defmodule CdmiWeb.Plugs.V1.Authentication do
   import Plug.Conn
   import Phoenix.Controller
   use CdmiWeb.Util.ControllerCommon
+
+  alias Cdmi.Authenticate
+
   require Logger
 
   def init(opts) do
@@ -57,27 +60,13 @@ defmodule CdmiWeb.Plugs.V1.Authentication do
           {String.t(), String.t()} | {:unauthorized, nil}
   defp basic_authentication(conn, authstring) do
     domain = conn.assigns.cdmi_domain
-    [user, rest] = String.split(authstring, ":")
+    [user_name, rest] = String.split(authstring, ":")
     [password | _] = String.split(rest, ";")
     Logger.debug("password is #{inspect(password)}")
-    Logger.debug("user is #{inspect(user)}")
+    Logger.debug("user is #{inspect(user_name)}")
     Logger.debug("domain is #{inspect(domain)}")
-    user_obj = MetadataBackend.search(conn.assigns.metadata_backend, domain, "/cdmi_domains/" <> domain <> "cdmi_domain_members/" <> user)
-    Logger.debug("response from search: #{inspect(user_obj)}")
-
-    case user_obj do
-      {:ok, data} ->
-        Logger.debug("Auth Data: #{inspect(data, pretty: true)}")
-        creds = data.metadata.cdmi_member_credentials
-
-        if creds == Utils.encrypt(user, password) do
-          {user, data.metadata.cdmi_member_privileges}
-        else
-          {:unauthorized, nil}
-        end
-
-      {:not_found, _} ->
-        {:unauthorized, nil}
-    end
+    Authenticate.authenticate_user_and_domain(conn, user_name, password, domain)
   end
+
+
 end
