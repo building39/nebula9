@@ -74,6 +74,9 @@ config :riak_metadata,
   riak_serverip: "192.168.2.11",
   riak_serverport: 8087
 
+config :riak_metadata, RiakMetadata.Cache,
+  gc_interval: 60 # 60 seconds
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

@@ -16,6 +16,10 @@ defmodule RiakMetadata.Riak.Client do
     Riak.put(obj)
   end
 
+  def query(cdmi_index, path) do
+    Riak.Search.query(cdmi_index, path)
+  end
+
   def query(cdmi_index, domain, path) do
     Riak.Search.query(cdmi_index, domain, path)
   end

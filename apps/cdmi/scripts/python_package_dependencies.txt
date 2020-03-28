@@ -1,0 +1,7 @@
+The python scripts in this directory will require the following python
+packages to be installed:
+
+requests
+riak
+
+These can be installed using pip.

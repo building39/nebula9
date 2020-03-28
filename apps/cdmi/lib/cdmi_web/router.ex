@@ -16,7 +16,7 @@ defmodule CdmiWeb.Router do
 
   scope "/cdmi", CdmiWeb do
     Logger.debug("CDMI scope")
-    # pipe_through(:cdmi)
+    pipe_through(:cdmi)
 
     scope "/v1", V1, as: :v1 do
       get("/", CdmiRootContainerController, :show)
@@ -34,7 +34,7 @@ defmodule CdmiWeb.Router do
       # post("/*path", PostController, :update)
       # put("/", PutController, :create)
       # put("/*path", PutController, :create)
-      pipe_through(:cdmi)
+      # pipe_through(:cdmi)
     end
   end
 end

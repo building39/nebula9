@@ -1,6 +1,7 @@
 # RiakMetadata
 
-**TODO: Add description**
+This application provides an interface for manipulating CDMI metdata in a `RIAK`
+cluster.
 
 ## Installation
 
@@ -18,4 +19,3 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/riak_metadata](https://hexdocs.pm/riak_metadata).
-
